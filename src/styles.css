@@ -13,6 +13,7 @@
   --accent-contrast: #ffffff;
   --note: #b25000;
   --notice-bg: #fff4e5;
+  --danger: #d70015;
   --label-bg: rgba(255, 255, 255, 0.86);
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 
@@ -36,6 +37,7 @@
     --accent-contrast: #000000;
     --note: #ffb057;
     --notice-bg: #2e2413;
+    --danger: #ff453a;
     --label-bg: rgba(40, 40, 43, 0.86);
     --shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
     color-scheme: dark;
@@ -56,6 +58,7 @@
   --accent-contrast: #000000;
   --note: #ffb057;
   --notice-bg: #2e2413;
+  --danger: #ff453a;
   --label-bg: rgba(40, 40, 43, 0.86);
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
   color-scheme: dark;
@@ -223,6 +226,133 @@ dd {
 
 .actions + .note {
   margin-top: 10px;
+}
+
+.button.danger {
+  background: var(--danger);
+  color: #ffffff;
+}
+
+/* ── Speichern ─────────────────────────────────────────────────────────── */
+.save-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 10px 10px 10px 14px;
+  border-radius: 14px;
+  background: var(--control);
+}
+
+.save-state {
+  flex: 1 1 120px;
+  min-width: 0;
+}
+
+.save-bar .button {
+  background: var(--control-active);
+  box-shadow: var(--shadow);
+}
+
+.save-name {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.save-hint {
+  color: var(--fg-muted);
+  font-size: 12px;
+}
+
+.save-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.text-field {
+  flex: 1 1 280px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.text-field input {
+  width: 100%;
+  padding: 9px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--control);
+  color: var(--fg);
+  font: inherit;
+}
+
+.saved-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--hairline);
+}
+
+.saved-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 24px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.saved-text {
+  flex: 1 1 280px;
+  min-width: 0;
+}
+
+.saved-item .saved-name {
+  font-size: 17px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.saved-meta {
+  color: var(--fg-muted);
+  font-size: 13px;
+}
+
+.saved-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.badge {
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--control);
+  color: var(--fg-muted);
+  font-size: 12px;
+  font-weight: 500;
+  vertical-align: 2px;
+}
+
+.empty {
+  padding: 28px 0;
+  color: var(--fg-muted);
+}
+
+.status {
+  color: var(--fg-muted);
+  font-size: 14px;
+}
+
+.dialog-actions .actions {
+  margin-top: 0;
 }
 
 /* ── Ergebnisansichten ─────────────────────────────────────────────────── */

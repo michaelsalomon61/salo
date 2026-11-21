@@ -1,4 +1,5 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { deleteSaved, importSaved, listSaved, loadDraft, saveConfig, saveDraft, type SavedConfig } from './storage/saved';
 import { advise, performance } from './trailer/advice';
 import { buildBom } from './trailer/bom';
 import { COLORS, DEFAULT_CONFIG, LIMITS, OPTIONS, STEERING, hasBoardDeck, optionName, resolve, type TrailerConfig } from './trailer/config';
@@ -7,6 +8,7 @@ import { describeConfig } from './trailer/summary';
 import { BomDialog } from './ui/BomDialog';
 import { Chips, Field, NumberField, Section, Segmented, Slider, Switch, TextArea } from './ui/controls';
 import { saveBlob } from './ui/download';
+import { SavedDialog } from './ui/SavedDialog';
 import { SummaryDialog } from './ui/SummaryDialog';
 import { Viewer } from './viewer/Viewer';
 
@@ -17,16 +19,47 @@ const steeringText = (deg: number) => (deg === 0 ? 'Geradeaus' : `${Math.abs(deg
 
 export function App() {
   // Gewünschte Werte; das Regelwerk leitet daraus die baubare Konfiguration ab.
-  const [requested, setRequested] = useState<TrailerConfig>(DEFAULT_CONFIG);
+  // Der Arbeitsstand der letzten Sitzung wird beim Öffnen wiederhergestellt.
+  const [draft] = useState(loadDraft);
+  const [requested, setRequested] = useState<TrailerConfig>(draft?.config ?? DEFAULT_CONFIG);
+  const [saved, setSaved] = useState<SavedConfig[]>(listSaved);
+  const [currentId, setCurrentId] = useState<string | null>(draft?.currentId ?? null);
+  const [saveStatus, setSaveStatus] = useState<string | null>(null);
+  const current = saved.find((e) => e.id === currentId) ?? null;
+  const unsaved = current ? JSON.stringify(current.config) !== JSON.stringify(requested) : true;
+
+  useEffect(() => {
+    saveDraft({ config: requested, currentId });
+  }, [requested, currentId]);
   const [showDimensions, setShowDimensions] = useState(true);
   const [resetSignal, setResetSignal] = useState(0);
-  const [dialog, setDialog] = useState<'summary' | 'bom' | null>(null);
+  const [dialog, setDialog] = useState<'summary' | 'bom' | 'saved' | null>(null);
   const closeDialog = useCallback(() => setDialog(null), []);
   const [step, setStep] = useState<'idle' | 'working' | 'failed'>('idle');
 
   const { config, derived, adjustments } = useMemo(() => resolve(requested), [requested]);
-  const set = <K extends keyof TrailerConfig>(key: K, value: TrailerConfig[K]) =>
-    setRequested((current) => ({ ...current, [key]: value }));
+  const set = <K extends keyof TrailerConfig>(key: K, value: TrailerConfig[K]) => {
+    setSaveStatus(null);
+    setRequested((previous) => ({ ...previous, [key]: value }));
+  };
+
+  /** Speichert die Eingaben unter einem Namen; liefert eine Fehlermeldung, wenn der Browser es verweigert. */
+  const save = (name: string): string | null => {
+    try {
+      const result = saveConfig(name, requested);
+      setSaved(result.list);
+      setCurrentId(result.entry.id);
+      setSaveStatus('Gespeichert');
+      return null;
+    } catch {
+      return 'Speichern nicht möglich: Der Browser lässt keinen lokalen Speicher zu.';
+    }
+  };
+  const quickSave = () => {
+    if (!current) return setDialog('saved');
+    const error = save(current.name);
+    if (error) setSaveStatus(error);
+  };
 
   // Die Stückliste liefert auch das Eigengewicht für Kennwerte und Hinweise.
   const description = useMemo(() => trailerParts(config, derived), [config, derived]);
@@ -92,6 +125,20 @@ export function App() {
               Das STEP-Modell konnte nicht erzeugt werden. Bitte Verbindung prüfen und erneut versuchen.
             </p>
           )}
+          <div className="save-bar">
+            <div className="save-state">
+              <p className="save-name">{current ? current.name : 'Nicht gespeichert'}</p>
+              <p className="save-hint" aria-live="polite">
+                {saveStatus ?? (current ? (unsaved ? 'Ungespeicherte Änderungen' : 'Alle Änderungen gespeichert') : 'Noch ohne Namen')}
+              </p>
+            </div>
+            <button type="button" id="quick-save" className="button" disabled={!!current && !unsaved} onClick={quickSave}>
+              Speichern
+            </button>
+            <button type="button" id="open-saved" className="button" onClick={() => setDialog('saved')}>
+              Konfigurationen{saved.length > 0 ? ` (${saved.length})` : ''}
+            </button>
+          </div>
         </header>
 
         <div className="sections">
@@ -300,6 +347,44 @@ export function App() {
       </aside>
 
       {dialog === 'bom' && <BomDialog bom={bom} summary={summary} fileBase={fileBase} onClose={closeDialog} />}
+      {dialog === 'saved' && (
+        <SavedDialog
+          saved={saved}
+          currentId={currentId}
+          suggestedName={`${optionName('body', config.body)} ${config.payloadT} t, ${nf.format(config.lengthMm)} × ${nf.format(config.widthMm)}`}
+          onSave={save}
+          onLoad={(entry) => {
+            setRequested(entry.config);
+            setCurrentId(entry.id);
+            setSaveStatus(null);
+            setDialog(null);
+          }}
+          onDelete={(id) => {
+            try {
+              setSaved(deleteSaved(id));
+              if (id === currentId) setCurrentId(null);
+            } catch {
+              setSaveStatus('Löschen nicht möglich: Der Browser lässt keinen lokalen Speicher zu.');
+            }
+          }}
+          onImport={(text) => {
+            try {
+              const result = importSaved(text);
+              setSaved(result.list);
+              return result.imported === 1 ? '1 Konfiguration eingelesen.' : `${result.imported} Konfigurationen eingelesen.`;
+            } catch {
+              return 'Die Datei enthält keine Konfigurationen aus diesem Konfigurator.';
+            }
+          }}
+          onNew={() => {
+            setRequested(DEFAULT_CONFIG);
+            setCurrentId(null);
+            setSaveStatus(null);
+            setDialog(null);
+          }}
+          onClose={closeDialog}
+        />
+      )}
       {dialog === 'summary' && (
         <SummaryDialog
           sections={describeConfig(config, derived, description, bom.totalKg, bom.pieceCount)}
