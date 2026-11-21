@@ -478,6 +478,8 @@ const T: Record<string, [en: string, sk: string]> = {
   Koppelstange: ['Coupling rod', 'Spojovacie tiahlo'],
   Kugeldrehkranz: ['Ball-bearing turntable', 'Guľkový otočný veniec'],
   Drehschemelrahmen: ['Turntable frame', 'Rám točnice'],
+  Drehkranzflansch: ['Turntable mounting flange', 'Montážna príruba otočného venca'],
+  Drehkranzträger: ['Turntable cross member', 'Nosník otočného venca'],
   Deichselaufnahme: ['Drawbar mount', 'Uloženie oja'],
   Lenkbock: ['Steering bracket', 'Konzola riadenia'],
   Lenkbolzen: ['Steering pin', 'Čap riadenia'],

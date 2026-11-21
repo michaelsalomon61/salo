@@ -651,8 +651,18 @@ export function trailerParts(config: TrailerConfig, d: Derived): TrailerParts {
   const bogie = (name: string, s: Section, centerX: number, linesMm: number[], braked: boolean) => {
     frames[name] = { parent: 'chassis', origin: [centerX, 0, 0], axis: 'y', angle: steerAngleAt(centerX, 0) };
     const subLen = (linesMm.length - 1) * spacing + 0.5;
-    const ringR = Math.min(W / 2 - 0.12, 0.6);
+    // Der Drehkranz bleibt unter dem Abschnitt, an dem er hängt.
+    const ringR = Math.min(W / 2 - 0.12, 0.6, centerX - s.x0 - 0.03, s.x1 - centerX - 0.03);
     rod(name, 'Lenkung', `Kugeldrehkranz Ø ${Math.round(ringR * 2000)}`, ringR, 0.05, 'y', [0, s.yBottom - 0.025, 0], { innerRadius: ringR - 0.09 });
+
+    // Oben ist der Kranz am Aufbau verschraubt: an einem Ringflansch unter den Längsträgern,
+    // den zwei Träger zwischen den Außenträgern aussteifen. Unten sitzt er auf dem Schemelrahmen.
+    const flangeT = 0.02;
+    rod('chassis', 'Lenkung', 'Drehkranzflansch', ringR + 0.03, flangeT, 'y', [centerX, s.yBottom + flangeT / 2, 0], { innerRadius: ringR - 0.12, look: 'paint' });
+    const carrierH = Math.min(0.1, s.webH - 0.03);
+    for (const end of [1, -1]) {
+      box('chassis', 'Lenkung', 'Drehkranzträger', [0.12, carrierH, s.crossW], [centerX + end * (ringR - 0.045), s.yBottom + flangeT + carrierH / 2, 0], { wall: 0.008 });
+    }
     box(name, 'Lenkung', 'Drehschemelrahmen', [subLen, subH, subW], [0, subYOf(s), 0], { wall: 0.012 });
     for (const xMm of linesMm) axleLine(name, xMm * MM - centerX, subYOf(s) - subH / 2, braked);
     return subLen / 2;

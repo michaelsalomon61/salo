@@ -161,6 +161,49 @@ describe('Sonderbauformen', () => {
   });
 });
 
+describe('Drehkranz', () => {
+  const find = (parts: ReturnType<typeof trailerParts>['parts'], name: string) => parts.filter((p) => p.name.startsWith(name));
+
+  it('ist oben über Flansch und Träger am Rahmen befestigt und sitzt unten auf dem Schemelrahmen', () => {
+    for (const overrides of [{}, { payloadT: 4, lengthMm: 2000, widthMm: 1200 }, { payloadT: 48, axles: 4, lengthMm: 12000 }, { body: 'lowbed' }, { body: 'longload' }] as Partial<TrailerConfig>[]) {
+      const { parts, frames } = check(overrides).description;
+      const [ring] = find(parts, 'Kugeldrehkranz');
+      const [flange] = find(parts, 'Drehkranzflansch');
+      const carriers = find(parts, 'Drehkranzträger');
+      const [subframe] = find(parts, 'Drehschemelrahmen');
+      if (ring.kind !== 'cylinder' || flange.kind !== 'cylinder' || subframe.kind !== 'box') throw new Error('unerwartete Bauteilform');
+      expect(carriers).toHaveLength(2);
+
+      // Lückenlos gestapelt: Schemelrahmen, Kranz, Flansch, Träger.
+      const flangeTop = flange.pos[1] + flange.length / 2;
+      const ringTop = ring.pos[1] + ring.length / 2;
+      expect(subframe.pos[1] + subframe.size[1] / 2).toBeCloseTo(ring.pos[1] - ring.length / 2, 6);
+      expect(flange.pos[1] - flange.length / 2).toBeCloseTo(ringTop, 6);
+      for (const c of carriers) if (c.kind === 'box') expect(c.pos[1] - c.size[1] / 2).toBeCloseTo(flangeTop, 6);
+      // Die Längsträger des Rahmens liegen auf dem Flansch auf.
+      const beams = find(parts, 'Längsträger').filter((p) => p.kind === 'box' && Math.abs(p.pos[0] - (frames.bogieFront.origin[0])) < p.size[0] / 2);
+      expect(beams.length).toBeGreaterThan(0);
+      for (const b of beams) if (b.kind === 'box') expect(b.pos[1] - b.size[1] / 2).toBeCloseTo(flangeTop, 6);
+
+      // Flansch und Kranz liegen mittig über dem Drehpunkt; der Flansch deckt den Kranz ab und bleibt unter dem Aufbau.
+      const centerX = frames.bogieFront.origin[0];
+      expect(flange.pos[0]).toBeCloseTo(centerX, 6);
+      expect(flange.radius).toBeGreaterThan(ring.radius);
+      expect(flange.innerRadius!).toBeLessThan(ring.innerRadius!);
+      const deckFront = Math.max(...find(parts, 'Stirnblech').map((p) => p.pos[0]));
+      expect(centerX + flange.radius).toBeLessThanOrEqual(deckFront + 0.01);
+      expect(ring.innerRadius!).toBeGreaterThan(0.05);
+    }
+  });
+
+  it('hat beim Doppel-Drehschemel vorn und hinten je eine Befestigung, ohne Drehschemel keine', () => {
+    const double = check({ steering: 'doubleTurntable' }).description.parts;
+    expect(find(double, 'Drehkranzflansch')).toHaveLength(2);
+    expect(find(double, 'Drehkranzträger')).toHaveLength(4);
+    expect(find(check({ steering: 'ackermann2' }).description.parts, 'Drehkranz')).toHaveLength(0);
+  });
+});
+
 describe('Lenkungsarten', () => {
   const steeringIds = OPTIONS.steering.map((o) => o.id);
 
