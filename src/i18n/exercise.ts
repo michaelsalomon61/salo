@@ -8,6 +8,7 @@ import { bomToCsv, buildBom } from '../trailer/bom';
 import { COLORS, DEFAULT_CONFIG, OPTIONS, resolve, type TrailerConfig } from '../trailer/config';
 import { trailerParts } from '../trailer/parts';
 import { estimateQuote, quoteToCsv } from '../trailer/pricing';
+import { buildImagePrompt } from '../trailer/prompt';
 import { describeConfig, describeProse, summaryToCsv } from '../trailer/summary';
 import type { Locale } from './index';
 
@@ -20,6 +21,7 @@ function exerciseConfig(L: Locale, overrides: Partial<TrailerConfig>) {
   advise(config, derived, bom.totalKg).forEach((m) => L.m(m));
   summaryToCsv(describeConfig(config, derived, description, bom.totalKg, bom.pieceCount, L), L);
   describeProse(config, derived, L);
+  buildImagePrompt(config, derived, description, bom.totalKg, bom.pieceCount, L);
   quoteToCsv(estimateQuote(config, description.parts), L);
 }
 

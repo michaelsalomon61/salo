@@ -16,7 +16,7 @@ Die Oberfläche gibt es in Deutsch, Englisch und Slowakisch, umschaltbar über d
 Zusammenfassung, Stückliste und die Bauteilnamen im STEP-Modell erscheinen in der gewählten Sprache, Zahlen
 in der jeweiligen Landesschreibweise.
 
-Aus der fertigen Konfiguration lassen sich vier Ergebnisse erzeugen:
+Aus der fertigen Konfiguration lassen sich fünf Ergebnisse erzeugen:
 
 - **Angebot**: Beschreibung der Konfiguration mit geschätztem Preis, ohne Adressdaten, druckbar und als PDF
   speicherbar. Die Preise sind Annahmen und stehen gesammelt in `src/trailer/pricing.ts`.
@@ -25,6 +25,14 @@ Aus der fertigen Konfiguration lassen sich vier Ergebnisse erzeugen:
   speicherbar als CSV.
 - **STEP-Modell**: jedes Bauteil als benannter Körper, Maße in Millimetern, z nach oben. Lenkung gerade,
   Deichsel waagerecht.
+- **KI-Bildprompt**: ein fertiger Prompt für ChatGPT oder einen anderen Bildgenerator, der die Konfiguration
+  genau beschreibt (Maße, Achsen, Räder, Bereifung, Lenkung, Deichsel, Aufbau, Farbe) und ein
+  fotorealistisches Bild verlangt. Ein Klick legt ihn in die Zwischenablage; die aktuelle 3D-Ansicht lässt
+  sich als Bild speichern und der KI als Vorlage mitgeben. Der Prompt folgt der gewählten Sprache.
+
+**Zurücksetzen** stellt den Zustand wie beim ersten Öffnen her: alle Eingaben, der Name, die Ansicht und die
+aufgeklappten Abschnitte. Gespeicherte Konfigurationen bleiben erhalten, außer man lässt sie im selben
+Schritt ausdrücklich mitlöschen. Die gewählte Sprache bleibt.
 
 Bauformen: durchgehende Plattform (auf Wunsch mit Dachaufbau als Plane oder Blech, Flach- oder Pultdach,
 offen oder seitlich geschlossen), Tieflader (Hinterräder innen oder außen laufend, Auffahrklappe seitlich
@@ -57,6 +65,7 @@ aufgebaut, und jedes muss über Berührungen am Rahmen hängen (`src/cad/connect
 - `src/trailer/advice.ts`: Kennwerte (Gewichte, Radlast, Zugkraftbedarf) und Hinweise auf Unstimmigkeiten.
 - `src/trailer/summary.ts`: die Konfiguration als lesbare Liste und als Kurzbeschreibung.
 - `src/trailer/pricing.ts`: Preismodell auf Schätzbasis (Sätze je Kilogramm, Stückpreise, Zuschläge).
+- `src/trailer/prompt.ts`: Prompt für einen KI-Bildgenerator aus der aktuellen Konfiguration.
 - `src/i18n/`: Sprachumschaltung. Die deutschen Texte im Code sind zugleich die Schlüssel; `translations.ts`
   enthält dazu die englische und slowakische Fassung. Tests prüfen, dass keine Übersetzung fehlt.
 - `src/viewer/thumbnails.ts`: kleine 3D-Bilder einzelner Bauteile für die Stückliste.

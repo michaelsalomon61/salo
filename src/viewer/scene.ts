@@ -134,6 +134,24 @@ export class TrailerScene {
     cam.updateProjectionMatrix();
   }
 
+  /** Die aktuelle Ansicht als PNG auf weißem Grund, ohne Maßlinien. */
+  capture(): string {
+    const shown = this.dims.visible;
+    this.dims.visible = false;
+    this.renderer.render(this.scene, this.camera);
+    const source = this.renderer.domElement;
+    const canvas = document.createElement('canvas');
+    canvas.width = source.width;
+    canvas.height = source.height;
+    const g = canvas.getContext('2d')!;
+    g.fillStyle = '#ffffff';
+    g.fillRect(0, 0, canvas.width, canvas.height);
+    // Direkt nach dem Rendern steht das Bild noch im Zeichenpuffer.
+    g.drawImage(source, 0, 0);
+    this.dims.visible = shown;
+    return canvas.toDataURL('image/png');
+  }
+
   setDimensionsVisible(visible: boolean) {
     this.dims.visible = visible;
   }

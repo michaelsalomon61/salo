@@ -274,6 +274,18 @@ select.pill {
   font-size: 13px;
 }
 
+.prompt-text {
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.reset-option {
+  max-width: 560px;
+  color: var(--fg);
+}
+
 .plain-list {
   margin: 0;
   padding-left: 20px;

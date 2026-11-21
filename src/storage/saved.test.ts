@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_CONFIG, resolve } from '../trailer/config';
-import { deleteSaved, exportSaved, importSaved, listSaved, loadDraft, sanitizeConfig, saveConfig, saveDraft, type KeyValueStore } from './saved';
+import { clearSaved, deleteSaved, exportSaved, importSaved, listSaved, loadDraft, sanitizeConfig, saveConfig, saveDraft, type KeyValueStore } from './saved';
 
 function memoryStore(): KeyValueStore & { data: Map<string, string> } {
   const data = new Map<string, string>();
@@ -32,6 +32,14 @@ describe('gespeicherte Konfigurationen', () => {
     const a = saveConfig('A', DEFAULT_CONFIG, store).entry;
     saveConfig('B', DEFAULT_CONFIG, store);
     expect(deleteSaved(a.id, store).map((e) => e.name)).toEqual(['B']);
+  });
+
+  it('löscht auf Wunsch alle Einträge', () => {
+    const store = memoryStore();
+    saveConfig('A', DEFAULT_CONFIG, store);
+    saveConfig('B', DEFAULT_CONFIG, store);
+    expect(clearSaved(store)).toEqual([]);
+    expect(listSaved(store)).toEqual([]);
   });
 
   it('übersteht beschädigte oder fremde Speicherinhalte', () => {

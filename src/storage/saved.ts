@@ -113,6 +113,11 @@ export function deleteSaved(id: string, store: KeyValueStore = browserStore()): 
   return write(listSaved(store).filter((e) => e.id !== id), store);
 }
 
+/** Löscht alle gespeicherten Konfigurationen. */
+export function clearSaved(store: KeyValueStore = browserStore()): SavedConfig[] {
+  return write([], store);
+}
+
 /** Gibt es schon einen Eintrag mit diesem Namen? */
 export function findByName(list: SavedConfig[], name: string): SavedConfig | undefined {
   return list.find((e) => sameName(e.name, name));

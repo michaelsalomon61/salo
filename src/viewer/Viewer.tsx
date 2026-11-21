@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type RefObject } from 'react';
 import { useLocale } from '../i18n/context';
 import type { Derived, TrailerConfig } from '../trailer/config';
 import { TrailerScene } from './scene';
@@ -9,9 +9,11 @@ interface Props {
   showDimensions: boolean;
   /** Jede Änderung setzt die Kamera auf die Ausgangsansicht zurück. */
   resetSignal: number;
+  /** Wird mit einer Funktion belegt, die die aktuelle Ansicht als PNG liefert. */
+  captureRef?: RefObject<(() => string | null) | null>;
 }
 
-export function Viewer({ config, derived, showDimensions, resetSignal }: Props) {
+export function Viewer({ config, derived, showDimensions, resetSignal, captureRef }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<TrailerScene | null>(null);
   const [failed, setFailed] = useState(false);
@@ -20,14 +22,16 @@ export function Viewer({ config, derived, showDimensions, resetSignal }: Props) 
   useEffect(() => {
     try {
       sceneRef.current = new TrailerScene(hostRef.current!);
+      if (captureRef) captureRef.current = () => sceneRef.current?.capture() ?? null;
     } catch {
       setFailed(true);
     }
     return () => {
       sceneRef.current?.dispose();
       sceneRef.current = null;
+      if (captureRef) captureRef.current = null;
     };
-  }, []);
+  }, [captureRef]);
 
   useEffect(() => {
     sceneRef.current?.update(config, derived, L.mm);

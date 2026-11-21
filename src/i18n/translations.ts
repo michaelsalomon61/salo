@@ -518,6 +518,114 @@ const T: Record<string, [en: string, sk: string]> = {
   'Unterlegkeil doppelt wirkend': ['Wheel chock, double-acting', 'Zakladací klin, obojstranný'],
   Keilhalter: ['Chock holder', 'Držiak klina'],
 
+  // ── KI-Bildprompt ────────────────────────────────────────────────────────
+  'KI-Bildprompt': ['AI image prompt', 'Prompt pre AI obrázok'],
+  'Fotorealistisches Bild der Konfiguration mit ChatGPT oder einem anderen Bildgenerator erzeugen': ['Create a photorealistic image of the configuration with ChatGPT or another image generator', 'Vytvorte fotorealistický obrázok konfigurácie pomocou ChatGPT alebo iného generátora obrázkov'],
+  'Der Prompt liegt in der Zwischenablage.': ['The prompt is on the clipboard.', 'Prompt je v schránke.'],
+  'Der Prompt ist noch nicht kopiert. Bitte „Prompt kopieren“ wählen.': ['The prompt has not been copied yet. Please choose “Copy prompt”.', 'Prompt ešte nie je skopírovaný. Zvoľte „Kopírovať prompt“.'],
+  'Der Text ist markiert. Bitte mit Strg+C bzw. Cmd+C kopieren.': ['The text is selected. Please copy it with Ctrl+C or Cmd+C.', 'Text je označený. Skopírujte ho pomocou Ctrl+C alebo Cmd+C.'],
+  'Die 3D-Ansicht steht gerade nicht als Bild zur Verfügung.': ['The 3D view is not available as an image right now.', '3D zobrazenie momentálne nie je k dispozícii ako obrázok.'],
+  'ChatGPT oder einen anderen Bildgenerator öffnen und den Prompt einfügen.': ['Open ChatGPT or another image generator and paste the prompt.', 'Otvorte ChatGPT alebo iný generátor obrázkov a vložte prompt.'],
+  'Für ein genaueres Ergebnis das Bild der 3D-Ansicht speichern und als Vorlage mit hochladen.': ['For a more accurate result, save the image of the 3D view and upload it as a reference.', 'Pre presnejší výsledok uložte obrázok 3D zobrazenia a nahrajte ho ako predlohu.'],
+  'Das Ergebnis ist eine Illustration der KI. Einzelheiten können von der Konfiguration abweichen.': ['The result is an AI illustration. Details may differ from the configuration.', 'Výsledok je ilustrácia vytvorená AI. Detaily sa môžu od konfigurácie líšiť.'],
+  '3D-Ansicht als Bild speichern': ['Save 3D view as image', 'Uložiť 3D zobrazenie ako obrázok'],
+  'Prompt kopieren': ['Copy prompt', 'Kopírovať prompt'],
+  'Erstelle eine fotorealistische 3D-Visualisierung eines Industrieanhängers als Bild in der Qualität eines hochwertigen Produktrenderings. Halte dich genau an die folgende Spezifikation: Maße, Stückzahlen und Ausstattung müssen stimmen, und es darf nichts hinzuerfunden werden.': [
+    'Create a photorealistic 3D visualisation of an industrial trailer as an image with the quality of a high-end product rendering. Follow the specification below exactly: dimensions, quantities and equipment must be correct, and nothing may be invented.',
+    'Vytvor fotorealistickú 3D vizualizáciu priemyselného prívesu ako obrázok v kvalite špičkového produktového renderu. Presne dodrž nasledujúcu špecifikáciu: rozmery, počty kusov a výbava musia sedieť a nič sa nesmie vymyslieť navyše.',
+  ],
+  Fahrzeug: ['Vehicle', 'Vozidlo'],
+  Spezifikation: ['Specification', 'Špecifikácia'],
+  'Aufbau und Proportionen': ['Structure and proportions', 'Konštrukcia a proporcie'],
+  Darstellung: ['Presentation', 'Zobrazenie'],
+  'Nicht zeigen': ['Do not show', 'Nezobrazovať'],
+  'Länge {length}, Breite {width}, Höhe der Ladefläche über dem Boden {height}. Der Anhänger ist flach und lang gestreckt; größte Höhe insgesamt {total}.': [
+    'Length {length}, width {width}, height of the load surface above the ground {height}. The trailer is flat and elongated; greatest overall height {total}.',
+    'Dĺžka {length}, šírka {width}, výška ložnej plochy nad zemou {height}. Príves je plochý a pretiahnutý; najväčšia celková výška {total}.',
+  ],
+  'Tragender Stahlrahmen, {frame} hoch. An den Längsseiten sind die Außenträger als nach außen offenes U-Profil mit senkrechten Rippen sichtbar; die Ladefläche schließt oben bündig ab.': [
+    'Load-bearing steel frame, {frame} high. Along the long sides the outer beams are visible as U-sections open to the outside with vertical ribs; the load surface is flush with the top.',
+    'Nosný oceľový rám vysoký {frame}. Na pozdĺžnych stranách sú vonkajšie nosníky viditeľné ako U-profil otvorený smerom von so zvislými rebrami; ložná plocha je hore v jednej rovine s rámom.',
+  ],
+  'Tieflader: Über den Achsen liegt die Ladefläche auf {height}; dazwischen ist sie als Tiefbett auf {bed} abgesenkt, verbunden über senkrechte Kröpfungen.': [
+    'Low-bed trailer: above the axles the load surface is at {height}; in between it drops to a well at {bed}, joined by vertical goosenecks.',
+    'Nízkoložný príves: nad nápravami je ložná plocha vo výške {height}; medzi nimi je znížená na {bed} a spojená zvislými zalomeniami.',
+  ],
+  'Langmaterialanhänger: zwei kurze Fahrgestellmodule mit je einem Rungenschemel und zwei senkrechten Rungen, verbunden nur durch ein mittiges Vierkantrohr. Es gibt keine durchgehende Ladefläche.': [
+    'Long-load trailer: two short chassis modules, each with a bolster and two vertical stanchions, connected only by a central square tube. There is no continuous load surface.',
+    'Príves na dlhý materiál: dva krátke podvozkové moduly, každý s oplenom a dvoma zvislými klanicami, spojené len stredovou štvorhrannou rúrou. Súvislá ložná plocha chýba.',
+  ],
+  'Anzahl der Achslinien vorn: {front}, hinten: {rear}. Die vordere Gruppe sitzt nahe der Stirnseite, die hintere nahe dem Heck; dazwischen ist der Unterbau frei.': [
+    'Number of axle lines at the front: {front}, at the rear: {rear}. The front group sits close to the front end, the rear group close to the rear end; the underside in between is clear.',
+    'Počet nápravových línií vpredu: {front}, vzadu: {rear}. Predná skupina je blízko čela, zadná blízko zadnej časti; priestor pod rámom medzi nimi je voľný.',
+  ],
+  'Jede Achslinie trägt 4 Räder: links und rechts je eine Pendelachse mit zwei eng nebeneinander stehenden Rädern. Insgesamt {count} Räder, Ø {diameter}, Reifenbreite {width}. Die Räder stehen vollständig unter dem Aufbau.': [
+    'Each axle line carries 4 wheels: one pendulum axle on the left and one on the right, each with two wheels set closely side by side. {count} wheels in total, Ø {diameter}, tyre width {width}. The wheels sit completely underneath the body.',
+    'Každá nápravová línia nesie 4 kolesá: vľavo aj vpravo jedna kyvná náprava s dvoma kolesami tesne vedľa seba. Spolu {count} kolies, Ø {diameter}, šírka pneumatiky {width}. Kolesá sú celé pod nadstavbou.',
+  ],
+  'Jede Achslinie trägt 2 Räder, eines je Seite. Insgesamt {count} Räder, Ø {diameter}, Reifenbreite {width}. Die Räder stehen vollständig unter dem Aufbau.': [
+    'Each axle line carries 2 wheels, one per side. {count} wheels in total, Ø {diameter}, tyre width {width}. The wheels sit completely underneath the body.',
+    'Každá nápravová línia nesie 2 kolesá, jedno na každej strane. Spolu {count} kolies, Ø {diameter}, šírka pneumatiky {width}. Kolesá sú celé pod nadstavbou.',
+  ],
+  'Reifen: massive Vollgummireifen ohne Profil auf schwarzen Stahlfelgen.': ['Tyres: solid rubber tyres without tread on black steel rims.', 'Pneumatiky: plné gumové obruče bez dezénu na čiernych oceľových diskoch.'],
+  'Reifen: breite Super-Elastic-Reifen (Vollreifen in der Form eines Luftreifens) auf schwarzen Stahlfelgen.': ['Tyres: wide super-elastic tyres (solid tyres shaped like pneumatic tyres) on black steel rims.', 'Pneumatiky: široké superelastické pneumatiky (plné pneumatiky v tvare vzduchových) na čiernych oceľových diskoch.'],
+  'Reifen: Luftreifen mit Profil auf silbergrauen Stahlfelgen.': ['Tyres: pneumatic tyres with tread on silver-grey steel rims.', 'Pneumatiky: vzduchové pneumatiky s dezénom na striebrosivých oceľových diskoch.'],
+  'Reifen: schmale, bernsteinfarbene Polyurethan-Bandagen auf grauen Stahlrädern.': ['Tyres: narrow, amber-coloured polyurethane treads on grey steel wheels.', 'Pneumatiky: úzke polyuretánové obruče jantárovej farby na sivých oceľových kolesách.'],
+  'Die Reifen sind hellgrau.': ['The tyres are light grey.', 'Pneumatiky sú svetlosivé.'],
+  'Die Reifen sind schwarz.': ['The tyres are black.', 'Pneumatiky sú čierne.'],
+  'Die Vorderachsen hängen an einem Drehschemel, einem drehbaren Unterwagen mit Drehkranz unter der Stirnseite; daran ist auch die Deichsel angelenkt.': [
+    'The front axles hang from a turntable bogie, a rotating undercarriage with a slewing ring beneath the front end; the drawbar is hinged to it as well.',
+    'Predné nápravy sú zavesené na otočnom podvozku s otočným vencom pod čelom; na ňom je kĺbovo uchytené aj oje.',
+  ],
+  'Die Vorderräder lenken einzeln über Achsschenkel; die Deichsel sitzt an einem Lenkbock unter der Stirnseite.': [
+    'The front wheels steer individually on steering knuckles; the drawbar is mounted on a steering bracket beneath the front end.',
+    'Predné kolesá sa natáčajú jednotlivo na čapoch riadenia; oje je uchytené na konzole riadenia pod čelom.',
+  ],
+  'Vorn mittig eine A-förmige Zugdeichsel aus Stahlprofilen, etwa {length} lang, mit {eye} an der Spitze. Die Deichsel ist senkrecht hochgeklappt.': [
+    'At the front centre an A-shaped drawbar made of steel sections, about {length} long, with {eye} at the tip. The drawbar is folded up vertically.',
+    'Vpredu v strede oje v tvare A z oceľových profilov, dlhé približne {length}, na konci {eye}. Oje je sklopené zvislo nahor.',
+  ],
+  'Vorn mittig eine A-förmige Zugdeichsel aus Stahlprofilen, etwa {length} lang, mit {eye} an der Spitze. Die Deichsel liegt waagerecht nach vorn.': [
+    'At the front centre an A-shaped drawbar made of steel sections, about {length} long, with {eye} at the tip. The drawbar points forward horizontally.',
+    'Vpredu v strede oje v tvare A z oceľových profilov, dlhé približne {length}, na konci {eye}. Oje smeruje vodorovne dopredu.',
+  ],
+  'Lackierung des gesamten Stahlbaus: {ral} {color} (etwa {hex}), seidenglänzend. Achsen, Bolzen und Kleinteile sind dunkel.': [
+    'Paint finish of the entire steel structure: {ral} {color} (approximately {hex}), satin gloss. Axles, pins and small parts are dark.',
+    'Lak celej oceľovej konštrukcie: {ral} {color} (približne {hex}), hodvábny lesk. Nápravy, čapy a drobné diely sú tmavé.',
+  ],
+  'Auf beiden seitlichen Außenträgern steht mittig die Aufschrift „{payload} t“.': ['Both outer side beams carry the lettering “{payload} t” in the middle.', 'Na oboch bočných vonkajších nosníkoch je v strede nápis „{payload} t“.'],
+  'Ansicht: Dreiviertelansicht von schräg vorn, Kamera leicht erhöht auf etwa 1,7 m, Brennweite etwa 50 mm. Der ganze Anhänger samt Deichsel ist im Bild, mit etwas Rand.': [
+    'View: three-quarter view from the front, camera slightly raised at about 1.7 m, focal length about 50 mm. The whole trailer including the drawbar is in the frame, with some margin.',
+    'Pohľad: trojštvrťový pohľad šikmo spredu, kamera mierne zvýšená vo výške približne 1,7 m, ohnisková vzdialenosť približne 50 mm. V zábere je celý príves vrátane oja, s malým okrajom.',
+  ],
+  'Umgebung: ebener, heller Betonboden auf einem Werksgelände, im Hintergrund unscharf eine Industriehalle.': [
+    'Setting: level, light concrete floor on factory premises, with an out-of-focus industrial hall in the background.',
+    'Prostredie: rovná svetlá betónová plocha v areáli závodu, v pozadí neostrá priemyselná hala.',
+  ],
+  'Licht: Tageslicht bei leicht bewölktem Himmel, weiche Schatten unter dem Fahrzeug, realistische Reflexionen auf dem Lack.': [
+    'Light: daylight under a lightly overcast sky, soft shadows beneath the vehicle, realistic reflections on the paint.',
+    'Svetlo: denné svetlo pri mierne zamračenej oblohe, mäkké tiene pod vozidlom, realistické odlesky na laku.',
+  ],
+  'Format: Querformat 16:9, hohe Auflösung.': ['Format: landscape 16:9, high resolution.', 'Formát: na šírku 16:9, vysoké rozlíšenie.'],
+  'Keine Personen, kein Zugfahrzeug, keine Ladung.': ['No people, no towing vehicle, no load.', 'Žiadne osoby, žiadne ťažné vozidlo, žiadny náklad.'],
+  'Keine Firmenlogos, Kennzeichen oder Beschriftungen außer der genannten Traglastangabe.': ['No company logos, licence plates or lettering other than the payload marking mentioned.', 'Žiadne firemné logá, evidenčné čísla ani nápisy okrem uvedeného údaja o nosnosti.'],
+  'Keine zusätzlichen Achsen, Räder, Bordwände oder Aufbauten, die oben nicht genannt sind.': ['No additional axles, wheels, side walls or superstructures that are not mentioned above.', 'Žiadne ďalšie nápravy, kolesá, bočnice ani nadstavby, ktoré nie sú uvedené vyššie.'],
+  'Falls ein Referenzbild beiliegt: Übernimm Aufbau und Proportionen daraus und setze sie fotorealistisch um.': [
+    'If a reference image is attached: take the structure and proportions from it and render them photorealistically.',
+    'Ak je priložený referenčný obrázok: prevezmi z neho konštrukciu a proporcie a stvárni ich fotorealisticky.',
+  ],
+
+  // ── Zurücksetzen ─────────────────────────────────────────────────────────
+  Zurücksetzen: ['Reset', 'Obnoviť'],
+  Abbrechen: ['Cancel', 'Zrušiť'],
+  'Von vorn beginnen wie beim ersten Öffnen': ['Start over as on first opening', 'Začať odznova ako pri prvom otvorení'],
+  'Alle Eingaben gehen auf die Ausgangswerte zurück, ungespeicherte Änderungen gehen verloren.': ['All inputs return to their initial values; unsaved changes are lost.', 'Všetky zadania sa vrátia na východiskové hodnoty, neuložené zmeny sa stratia.'],
+  'Ansicht, Maße und aufgeklappte Abschnitte werden zurückgestellt.': ['View, dimensions and expanded sections are reset.', 'Zobrazenie, rozmery a rozbalené sekcie sa obnovia.'],
+  'Die gewählte Sprache bleibt erhalten.': ['The selected language is kept.', 'Zvolený jazyk zostane zachovaný.'],
+  'Auch die gespeicherten Konfigurationen löschen ({count})': ['Also delete the saved configurations ({count})', 'Odstrániť aj uložené konfigurácie ({count})'],
+  'Gespeicherte Konfigurationen werden unwiderruflich gelöscht.': ['Saved configurations will be deleted permanently.', 'Uložené konfigurácie sa nenávratne odstránia.'],
+  'Gespeicherte Konfigurationen bleiben erhalten.': ['Saved configurations are kept.', 'Uložené konfigurácie zostanú zachované.'],
+
   // ── Werkstoffe ───────────────────────────────────────────────────────────
   'Stahl S355': ['Steel S355', 'Oceľ S355'],
   Stahl: ['Steel', 'Oceľ'],

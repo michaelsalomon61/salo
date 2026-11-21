@@ -1,18 +1,21 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LANGUAGES, initialLang, locale, msg, rememberLang, type Lang, type Msg } from './i18n';
 import { LocaleContext } from './i18n/context';
-import { deleteSaved, importSaved, listSaved, loadDraft, saveConfig, saveDraft, type SavedConfig } from './storage/saved';
+import { clearSaved, deleteSaved, importSaved, listSaved, loadDraft, saveConfig, saveDraft, type SavedConfig } from './storage/saved';
 import { decodeShare, shareUrl } from './storage/share';
 import { advise, performance } from './trailer/advice';
 import { buildBom } from './trailer/bom';
 import { COLORS, DEFAULT_CONFIG, LIMITS, OPTIONS, STEERING, hasBoardDeck, optionName, resolve, type TrailerConfig } from './trailer/config';
 import { trailerParts } from './trailer/parts';
 import { estimateQuote } from './trailer/pricing';
+import { buildImagePrompt } from './trailer/prompt';
 import { describeConfig, describeProse } from './trailer/summary';
 import { BomDialog } from './ui/BomDialog';
 import { Chips, Field, NumberField, Section, Segmented, Slider, Switch, TextArea } from './ui/controls';
 import { saveBlob } from './ui/download';
+import { PromptDialog } from './ui/PromptDialog';
 import { QuoteDialog } from './ui/QuoteDialog';
+import { ResetDialog } from './ui/ResetDialog';
 import { SavedDialog } from './ui/SavedDialog';
 import { ShareDialog } from './ui/ShareDialog';
 import { SummaryDialog } from './ui/SummaryDialog';
@@ -53,7 +56,12 @@ export function App() {
   }, [requested, currentId]);
   const [showDimensions, setShowDimensions] = useState(true);
   const [resetSignal, setResetSignal] = useState(0);
-  const [dialog, setDialog] = useState<'summary' | 'bom' | 'saved' | 'saveAs' | 'share' | 'quote' | null>(null);
+  const [dialog, setDialog] = useState<'summary' | 'bom' | 'saved' | 'saveAs' | 'share' | 'quote' | 'prompt' | 'reset' | null>(null);
+  const captureRef = useRef<(() => string | null) | null>(null);
+  const panelRef = useRef<HTMLElement>(null);
+  const [promptCopied, setPromptCopied] = useState(false);
+  /** Zählt Neustarts; damit werden die Abschnitte der Bedienung neu aufgebaut. */
+  const [generation, setGeneration] = useState(0);
   const closeDialog = useCallback(() => setDialog(null), []);
   const [step, setStep] = useState<'idle' | 'working' | 'failed'>('idle');
 
@@ -105,6 +113,41 @@ export function App() {
   const approx = (value: string) => t('ca. {value}', { value: { raw: value } });
   const sizeOptions = (key: 'wallHeightMm' | 'rasterMm') => OPTIONS[key].map((o) => ({ id: o.id, name: mm(o.id) }));
 
+  const imagePrompt = () => buildImagePrompt(config, derived, description, bom.totalKg, bom.pieceCount, L);
+  /** Kopiert den Prompt sofort beim Klick und zeigt ihn danach an. */
+  const openPrompt = async () => {
+    let copied = false;
+    try {
+      await navigator.clipboard.writeText(imagePrompt());
+      copied = true;
+    } catch {
+      // Der Dialog bietet das Kopieren dann von Hand an.
+    }
+    setPromptCopied(copied);
+    setDialog('prompt');
+  };
+
+  /** Stellt den Zustand wie beim ersten Öffnen her; gespeicherte Konfigurationen nur auf Wunsch. */
+  const reset = (deleteStored: boolean) => {
+    setRequested(DEFAULT_CONFIG);
+    setCurrentId(null);
+    setLinkName(null);
+    setSaveStatus(null);
+    setStep('idle');
+    setShowDimensions(true);
+    setResetSignal((n) => n + 1);
+    setGeneration((n) => n + 1);
+    if (deleteStored) {
+      try {
+        setSaved(clearSaved());
+      } catch {
+        setSaveStatus(msg('Löschen nicht möglich: Der Browser lässt keinen lokalen Speicher zu.'));
+      }
+    }
+    setDialog(null);
+    panelRef.current?.scrollTo({ top: 0 });
+  };
+
   const saveStep = async () => {
     setStep('working');
     try {
@@ -120,7 +163,7 @@ export function App() {
     <LocaleContext.Provider value={L}>
       <div className="app">
         <section className="stage" aria-label={t('3D-Ansicht')}>
-          <Viewer config={config} derived={derived} showDimensions={showDimensions} resetSignal={resetSignal} />
+          <Viewer config={config} derived={derived} showDimensions={showDimensions} resetSignal={resetSignal} captureRef={captureRef} />
           <div className="stage-tools">
             <select id="language" className="pill" aria-label={t('Sprache')} value={lang} onChange={(e) => setLang(e.target.value as Lang)}>
               {LANGUAGES.map((l) => (
@@ -139,7 +182,7 @@ export function App() {
           <p className="stage-hint">{t('Ziehen dreht das Modell, Scrollen oder Spreizen zoomt.')}</p>
         </section>
 
-        <aside className="panel" aria-label={t('Konfiguration')}>
+        <aside className="panel" aria-label={t('Konfiguration')} ref={panelRef}>
           <header className="panel-head">
             <p className="eyebrow">{t('Konfigurator')}</p>
             <h1>{t('Schwerlastanhänger')}</h1>
@@ -156,6 +199,9 @@ export function App() {
               </button>
               <button type="button" id="save-step" className="button" disabled={step === 'working'} onClick={saveStep}>
                 {t(step === 'working' ? 'Wird erzeugt …' : 'STEP-Modell')}
+              </button>
+              <button type="button" id="open-prompt" className="button" onClick={() => void openPrompt()}>
+                {t('KI-Bildprompt')}
               </button>
             </div>
             {step === 'failed' && (
@@ -184,11 +230,14 @@ export function App() {
                   {t('Gespeicherte')}
                   {saved.length > 0 ? ` (${saved.length})` : ''}
                 </button>
+                <button type="button" id="open-reset" className="button" onClick={() => setDialog('reset')}>
+                  {t('Zurücksetzen')}
+                </button>
               </div>
             </div>
           </header>
 
-          <div className="sections">
+          <div className="sections" key={generation}>
             <Section title={t('Grunddaten')} open>
               <Slider id="payload" label={t('Nutzlast')} value={config.payloadT} display={`${config.payloadT} t`} {...LIMITS.payloadT} onChange={(v) => set('payloadT', v)} />
               <Segmented
@@ -388,6 +437,8 @@ export function App() {
         </aside>
 
         {dialog === 'bom' && <BomDialog bom={bom} summary={summary} fileBase={fileBase} colorHex={color.hex} onClose={closeDialog} />}
+        {dialog === 'prompt' && <PromptDialog prompt={imagePrompt()} copied={promptCopied} capture={captureRef.current} fileBase={fileBase} onClose={closeDialog} />}
+        {dialog === 'reset' && <ResetDialog savedCount={saved.length} onReset={reset} onClose={closeDialog} />}
         {dialog === 'share' && (
           <ShareDialog url={shareUrl(requested, current?.name ?? linkName, window.location.href)} title={current?.name ?? headline} onClose={closeDialog} />
         )}
