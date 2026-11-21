@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
+import { useLocale } from '../i18n/context';
 
 /** Aufklappbarer Abschnitt der Konfiguration. */
 export function Section({ title, open, children }: { title: string; open?: boolean; children: ReactNode }) {
@@ -75,16 +76,17 @@ interface ChoiceProps<T extends string | number> {
   id: string;
   label: string;
   value: T;
+  /** Die Namen der Optionen sind Ausgangstexte und werden hier übersetzt. */
   options: readonly { id: T; name: string; disabled?: boolean }[];
   note?: string;
   onChange: (value: T) => void;
 }
 
-/** Auswahl aus wenigen kurzen Optionen in einer Zeile. */
-export function Segmented<T extends string | number>({ id, label, value, options, note, onChange }: ChoiceProps<T>) {
+function Choice<T extends string | number>({ id, label, value, options, note, onChange, className }: ChoiceProps<T> & { className: string }) {
+  const { t } = useLocale();
   return (
     <Field label={label} note={note}>
-      <div className="segmented" role="radiogroup" aria-label={label} id={id}>
+      <div className={className} role="radiogroup" aria-label={label} id={id}>
         {options.map((o) => (
           <button
             key={o.id}
@@ -95,7 +97,7 @@ export function Segmented<T extends string | number>({ id, label, value, options
             disabled={o.disabled}
             onClick={() => onChange(o.id)}
           >
-            {o.name}
+            {t(o.name)}
           </button>
         ))}
       </div>
@@ -103,27 +105,14 @@ export function Segmented<T extends string | number>({ id, label, value, options
   );
 }
 
+/** Auswahl aus wenigen kurzen Optionen in einer Zeile. */
+export function Segmented<T extends string | number>(props: ChoiceProps<T>) {
+  return <Choice {...props} className="segmented" />;
+}
+
 /** Auswahl aus mehreren oder längeren Optionen, umbrechend. */
-export function Chips<T extends string | number>({ id, label, value, options, note, onChange }: ChoiceProps<T>) {
-  return (
-    <Field label={label} note={note}>
-      <div className="chips" role="radiogroup" aria-label={label} id={id}>
-        {options.map((o) => (
-          <button
-            key={o.id}
-            type="button"
-            id={`${id}-${o.id}`}
-            role="radio"
-            aria-checked={o.id === value}
-            disabled={o.disabled}
-            onClick={() => onChange(o.id)}
-          >
-            {o.name}
-          </button>
-        ))}
-      </div>
-    </Field>
-  );
+export function Chips<T extends string | number>(props: ChoiceProps<T>) {
+  return <Choice {...props} className="chips" />;
 }
 
 export function Switch({ id, label, checked, onChange }: { id: string; label: string; checked: boolean; onChange: (checked: boolean) => void }) {

@@ -1,5 +1,8 @@
-import { Fragment } from 'react';
+import { Fragment, useEffect, useState } from 'react';
+import { useLocale } from '../i18n/context';
 import { bomToCsv, type Bom } from '../trailer/bom';
+import type { Part } from '../trailer/parts';
+import { renderPartThumbnails } from '../viewer/thumbnails';
 import { Dialog } from './Dialog';
 import { saveBlob } from './download';
 
@@ -7,32 +10,64 @@ interface Props {
   bom: Bom;
   summary: string;
   fileBase: string;
+  /** Lackfarbe des Anhängers, damit die Vorschaubilder dazu passen. */
+  colorHex: string;
   onClose: () => void;
 }
 
-const nf = new Intl.NumberFormat('de-DE');
-const kg = (v: number) => nf.format(Math.round(v * 10) / 10);
+/**
+ * Bauteil für das Vorschaubild: sehr lange Profile und Stangen werden gekürzt,
+ * damit der Querschnitt in dem kleinen Bild erkennbar bleibt.
+ */
+function forThumbnail(part: Part): Part {
+  if (part.kind === 'box') {
+    const [longest, middle] = [...part.size].sort((a, b) => b - a);
+    const limit = Math.max(middle * 5, 0.2);
+    if (longest > limit) return { ...part, rotY: 0, size: part.size.map((s) => (s === longest ? limit : s)) as Part['pos'] };
+    return { ...part, rotY: 0 };
+  }
+  if (part.kind === 'cylinder' && part.length > part.radius * 12) return { ...part, length: part.radius * 12 };
+  return part;
+}
 
-export function BomDialog({ bom, summary, fileBase, onClose }: Props) {
+export function BomDialog({ bom, summary, fileBase, colorHex, onClose }: Props) {
+  const L = useLocale();
+  const { t, nf } = L;
+  const kg = (v: number) => nf(Math.round(v * 10) / 10);
+
+  // Die Vorschaubilder entstehen nach dem Öffnen, damit die Liste sofort da ist.
+  const [thumbnails, setThumbnails] = useState<string[] | null>(null);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      try {
+        setThumbnails(renderPartThumbnails(bom.rows.map((r) => forThumbnail(r.part)), colorHex));
+      } catch {
+        // Ohne WebGL bleibt die Liste ohne Bilder.
+        setThumbnails(null);
+      }
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [bom, colorHex]);
+
   const saveCsv = () => {
     // Das BOM-Zeichen sorgt dafür, dass Excel die Umlaute richtig liest.
-    saveBlob(new Blob(['﻿', bomToCsv(bom)], { type: 'text/csv;charset=utf-8' }), `${fileBase}-stueckliste.csv`);
+    saveBlob(new Blob(['﻿', bomToCsv(bom, L)], { type: 'text/csv;charset=utf-8' }), `${fileBase}-${t('stueckliste')}.csv`);
   };
 
   return (
-    <Dialog title="Stückliste" subtitle={summary} onClose={onClose}>
+    <Dialog title={t('Stückliste')} subtitle={summary} onClose={onClose}>
       <dl className="totals">
         <div>
-          <dt>Einzelteile</dt>
-          <dd>{nf.format(bom.pieceCount)}</dd>
+          <dt>{t('Einzelteile')}</dt>
+          <dd>{nf(bom.pieceCount)}</dd>
         </div>
         <div>
-          <dt>Positionen</dt>
-          <dd>{nf.format(bom.rows.length)}</dd>
+          <dt>{t('Positionen')}</dt>
+          <dd>{nf(bom.rows.length)}</dd>
         </div>
         <div>
-          <dt>Gesamtgewicht</dt>
-          <dd>{nf.format(bom.totalKg)} kg</dd>
+          <dt>{t('Gesamtgewicht')}</dt>
+          <dd>{nf(bom.totalKg)} kg</dd>
         </div>
       </dl>
 
@@ -40,23 +75,24 @@ export function BomDialog({ bom, summary, fileBase, onClose }: Props) {
         <table className="bom">
           <thead>
             <tr>
-              <th className="num">Pos.</th>
-              <th>Benennung</th>
-              <th className="num">Menge</th>
-              <th>Abmessungen (mm)</th>
-              <th>Werkstoff</th>
-              <th className="num">Einzelgewicht (kg)</th>
-              <th className="num">Gesamtgewicht (kg)</th>
+              <th className="num">{t('Pos.')}</th>
+              <th className="thumb-cell">{t('Bild')}</th>
+              <th>{t('Benennung')}</th>
+              <th className="num">{t('Menge')}</th>
+              <th>{t('Abmessungen (mm)')}</th>
+              <th>{t('Werkstoff')}</th>
+              <th className="num">{t('Einzelgewicht (kg)')}</th>
+              <th className="num">{t('Gesamtgewicht (kg)')}</th>
             </tr>
           </thead>
           <tbody>
             {bom.groups.map((g) => (
               <Fragment key={g.group}>
                 <tr className="group-row">
-                  <th colSpan={2} scope="rowgroup">
-                    {g.group}
+                  <th colSpan={3} scope="rowgroup">
+                    {t(g.group)}
                   </th>
-                  <td className="num">{nf.format(g.pieceCount)}</td>
+                  <td className="num">{nf(g.pieceCount)}</td>
                   <td colSpan={3} />
                   <td className="num">{kg(g.totalKg)}</td>
                 </tr>
@@ -65,10 +101,13 @@ export function BomDialog({ bom, summary, fileBase, onClose }: Props) {
                   .map((r) => (
                     <tr key={r.pos}>
                       <td className="num">{r.pos}</td>
-                      <td>{r.name}</td>
-                      <td className="num">{nf.format(r.quantity)}</td>
+                      <td className="thumb-cell">
+                        {thumbnails?.[r.pos - 1] ? <img className="thumb" src={thumbnails[r.pos - 1]} alt="" width={64} height={48} /> : <span className="thumb" />}
+                      </td>
+                      <td>{L.partName(r.name)}</td>
+                      <td className="num">{nf(r.quantity)}</td>
                       <td>{r.dimensions}</td>
-                      <td>{r.material}</td>
+                      <td>{t(r.material)}</td>
                       <td className="num">{kg(r.unitKg)}</td>
                       <td className="num">{kg(r.totalKg)}</td>
                     </tr>
@@ -78,12 +117,12 @@ export function BomDialog({ bom, summary, fileBase, onClose }: Props) {
           </tbody>
           <tfoot>
             <tr>
-              <th colSpan={2} scope="row">
-                Summe
+              <th colSpan={3} scope="row">
+                {t('Summe')}
               </th>
-              <td className="num">{nf.format(bom.pieceCount)}</td>
+              <td className="num">{nf(bom.pieceCount)}</td>
               <td colSpan={3} />
-              <td className="num">{nf.format(bom.totalKg)}</td>
+              <td className="num">{nf(bom.totalKg)}</td>
             </tr>
           </tfoot>
         </table>
@@ -91,11 +130,10 @@ export function BomDialog({ bom, summary, fileBase, onClose }: Props) {
 
       <div className="dialog-actions">
         <p className="footnote">
-          Gewichte aus Abmessungen und Dichte berechnet, Zukaufteile geschätzt. Verbindungsmittel, Schweißnähte,
-          Lackierung und Preise sind noch nicht enthalten.
+          {t('Gewichte aus Abmessungen und Dichte berechnet, Zukaufteile geschätzt. Verbindungsmittel, Schweißnähte und Lackierung sind noch nicht enthalten. In den Bildern sind lange Teile verkürzt dargestellt.')}
         </p>
         <button type="button" id="bom-save" className="button primary" onClick={saveCsv}>
-          Als CSV speichern
+          {t('Als CSV speichern')}
         </button>
       </div>
     </Dialog>

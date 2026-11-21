@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { COLORS, type Derived, type TrailerConfig } from './config';
-import { TYRE_SHAPE, trailerParts, type BoxPart, type Look, type TrailerParts, type WheelPart } from './parts';
+import { TYRE_SHAPE, trailerParts, type BoxPart, type Look, type Part, type TrailerParts, type WheelPart } from './parts';
 import { checkerNormalTexture, meshTexture, payloadLabelTexture, rubberNormalTexture, woodTexture } from './textures';
 
 export interface Joint {
@@ -29,7 +29,55 @@ const WOOD_BANDS = 5;
  */
 export function buildTrailer(config: TrailerConfig, d: Derived): TrailerBuild {
   const description = trailerParts(config, d);
+  const colorHex = (COLORS.find((c) => c.id === config.colorId) ?? COLORS[0]).hex;
+  const factory = createPartFactory(colorHex);
 
+  const group = new THREE.Group();
+  const joints: Record<string, Joint> = {};
+  const frameObjects: Record<string, THREE.Group> = {};
+  // Übergeordnete Bezugssysteme stehen in der Beschreibung vor ihren Kindern.
+  for (const [name, frame] of Object.entries(description.frames)) {
+    if (!frame.parent) {
+      frameObjects[name] = group;
+      continue;
+    }
+    const object = new THREE.Group();
+    object.position.fromArray(frame.origin);
+    frameObjects[frame.parent].add(object);
+    frameObjects[name] = object;
+    joints[name] = { object, axis: frame.axis, angle: frame.angle };
+  }
+
+  for (const p of description.parts) frameObjects[p.frame].add(factory.object(p));
+
+  // Traglastangabe auf beiden Außenträgern, mittig in einem Rippenfeld.
+  const { label } = description;
+  const labelTex = factory.track(payloadLabelTexture(`${config.payloadT} t`, isDark(colorHex) ? '#f5f5f7' : '#1d1d1f'));
+  const labelMat = factory.track(new THREE.MeshStandardMaterial({ map: labelTex, transparent: true, roughness: 0.6 }));
+  const labelGeo = factory.track(new THREE.PlaneGeometry(label.height * (512 / 192), label.height));
+  for (const side of [1, -1]) {
+    const plane = new THREE.Mesh(labelGeo, labelMat);
+    plane.position.set(side * label.x, label.y, side * label.z);
+    if (side < 0) plane.rotation.y = Math.PI;
+    group.add(plane);
+  }
+
+  return { group, joints, description, dispose: factory.dispose };
+}
+
+export interface PartFactory {
+  /** 3D-Objekt für ein Bauteil, an seiner Stelle im Bezugssystem. */
+  object: (p: Part) => THREE.Object3D;
+  /** Merkt etwas zum späteren Freigeben vor. */
+  track: <T extends { dispose: () => void }>(item: T) => T;
+  dispose: () => void;
+}
+
+/**
+ * Erzeugt 3D-Objekte für einzelne Bauteile. Materialien und gleiche
+ * Radgeometrien werden geteilt; dispose gibt alles wieder frei.
+ */
+export function createPartFactory(colorHex: string): PartFactory {
   const disposables: { dispose: () => void }[] = [];
   const track = <T extends { dispose: () => void }>(item: T): T => {
     disposables.push(item);
@@ -37,8 +85,6 @@ export function buildTrailer(config: TrailerConfig, d: Derived): TrailerBuild {
   };
   const standard = (parameters: THREE.MeshStandardMaterialParameters) =>
     track(new THREE.MeshStandardMaterial(parameters));
-
-  const colorHex = (COLORS.find((c) => c.id === config.colorId) ?? COLORS[0]).hex;
 
   // Materialien entstehen erst, wenn ein Bauteil sie braucht.
   const materials = new Map<Look, THREE.Material>();
@@ -93,22 +139,6 @@ export function buildTrailer(config: TrailerConfig, d: Derived): TrailerBuild {
     materials.set(look, m);
     return m;
   };
-
-  const group = new THREE.Group();
-  const joints: Record<string, Joint> = {};
-  const frameObjects: Record<string, THREE.Group> = {};
-  // Übergeordnete Bezugssysteme stehen in der Beschreibung vor ihren Kindern.
-  for (const [name, frame] of Object.entries(description.frames)) {
-    if (!frame.parent) {
-      frameObjects[name] = group;
-      continue;
-    }
-    const object = new THREE.Group();
-    object.position.fromArray(frame.origin);
-    frameObjects[frame.parent].add(object);
-    frameObjects[name] = object;
-    joints[name] = { object, axis: frame.axis, angle: frame.angle };
-  }
 
   const mesh = (geometry: THREE.BufferGeometry, m: THREE.Material) => {
     const object = new THREE.Mesh(geometry, m);
@@ -186,13 +216,11 @@ export function buildTrailer(config: TrailerConfig, d: Derived): TrailerBuild {
     return object;
   };
 
-  for (const p of description.parts) {
-    let object: THREE.Object3D;
-    if (p.kind === 'box') {
-      object = addBox(p);
-    } else if (p.kind === 'wheel') {
-      object = addWheel(p);
-    } else if (p.kind === 'cylinder') {
+  const object = (p: Part): THREE.Object3D => {
+    if (p.kind === 'box') return addBox(p);
+    if (p.kind === 'wheel') return addWheel(p);
+    let result: THREE.Object3D;
+    if (p.kind === 'cylinder') {
       const geometry = track(
         p.innerRadius
           ? ringPlateGeometry(p.radius, p.innerRadius, p.length)
@@ -200,30 +228,17 @@ export function buildTrailer(config: TrailerConfig, d: Derived): TrailerBuild {
       );
       if (p.axis === 'x') geometry.rotateZ(Math.PI / 2);
       else if (p.axis === 'z') geometry.rotateX(Math.PI / 2);
-      object = mesh(geometry, material(p.look));
-      object.position.fromArray(p.pos);
+      result = mesh(geometry, material(p.look));
     } else {
       const geometry = track(new THREE.TorusGeometry(p.radius, p.tube, 16, 40));
       if (p.axis === 'y') geometry.rotateX(Math.PI / 2);
-      object = mesh(geometry, material(p.look));
-      object.position.fromArray(p.pos);
+      result = mesh(geometry, material(p.look));
     }
-    frameObjects[p.frame].add(object);
-  }
+    result.position.fromArray(p.pos);
+    return result;
+  };
 
-  // Traglastangabe auf beiden Außenträgern, mittig in einem Rippenfeld.
-  const { label } = description;
-  const labelTex = track(payloadLabelTexture(`${config.payloadT} t`, isDark(colorHex) ? '#f5f5f7' : '#1d1d1f'));
-  const labelMat = standard({ map: labelTex, transparent: true, roughness: 0.6 });
-  const labelGeo = track(new THREE.PlaneGeometry(label.height * (512 / 192), label.height));
-  for (const side of [1, -1]) {
-    const plane = new THREE.Mesh(labelGeo, labelMat);
-    plane.position.set(side * label.x, label.y, side * label.z);
-    if (side < 0) plane.rotation.y = Math.PI;
-    group.add(plane);
-  }
-
-  return { group, joints, description, dispose: () => disposables.forEach((item) => item.dispose()) };
+  return { object, track, dispose: () => disposables.forEach((item) => item.dispose()) };
 }
 
 /** Reifen als Drehkörper um die z-Achse mit gerundeten Schultern. */

@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react';
+import { useLocale } from '../i18n/context';
 
 interface Props {
   title: string;
@@ -9,6 +10,7 @@ interface Props {
 
 /** Bildschirmfüllende Ansicht über dem Konfigurator, schließt mit Escape. */
 export function Dialog({ title, subtitle, onClose, children }: Props) {
+  const { t } = useLocale();
   const closeRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -29,7 +31,7 @@ export function Dialog({ title, subtitle, onClose, children }: Props) {
             {subtitle && <p className="lede">{subtitle}</p>}
           </div>
           <button ref={closeRef} type="button" className="button" onClick={onClose}>
-            Zurück zur Konfiguration
+            {t('Zurück zur Konfiguration')}
           </button>
         </header>
         {children}

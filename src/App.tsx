@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { LANGUAGES, initialLang, locale, msg, rememberLang, type Lang, type Msg } from './i18n';
+import { LocaleContext } from './i18n/context';
 import { deleteSaved, importSaved, listSaved, loadDraft, saveConfig, saveDraft, type SavedConfig } from './storage/saved';
 import { decodeShare, shareUrl } from './storage/share';
 import { advise, performance } from './trailer/advice';
@@ -16,12 +18,16 @@ import { ShareDialog } from './ui/ShareDialog';
 import { SummaryDialog } from './ui/SummaryDialog';
 import { Viewer } from './viewer/Viewer';
 
-const nf = new Intl.NumberFormat('de-DE');
-const mm = (v: number) => `${nf.format(v)} mm`;
-const kg = (v: number) => `${nf.format(v)} kg`;
-const steeringText = (deg: number) => (deg === 0 ? 'Geradeaus' : `${Math.abs(deg)}° ${deg < 0 ? 'links' : 'rechts'}`);
-
 export function App() {
+  const [lang, setLang] = useState<Lang>(initialLang);
+  const L = useMemo(() => locale(lang), [lang]);
+  const { t, mm, kg, nf } = L;
+  useEffect(() => {
+    document.documentElement.lang = lang;
+    document.title = t('Anhänger-Konfigurator');
+    rememberLang(lang);
+  }, [lang, t]);
+
   // Gewünschte Werte; das Regelwerk leitet daraus die baubare Konfiguration ab.
   // Ein geteilter Link hat Vorrang; sonst wird der Arbeitsstand der letzten Sitzung wiederhergestellt.
   const [shared] = useState(() => decodeShare(window.location.hash));
@@ -29,8 +35,8 @@ export function App() {
   const [requested, setRequested] = useState<TrailerConfig>(shared?.config ?? draft?.config ?? DEFAULT_CONFIG);
   const [saved, setSaved] = useState<SavedConfig[]>(listSaved);
   const [currentId, setCurrentId] = useState<string | null>(shared ? null : (draft?.currentId ?? null));
-  const [saveStatus, setSaveStatus] = useState<string | null>(
-    shared ? (shared.name ? `Aus Link geöffnet: „${shared.name}“` : 'Aus Link geöffnet') : null,
+  const [saveStatus, setSaveStatus] = useState<Msg | null>(
+    shared ? (shared.name ? msg('Aus Link geöffnet: „{name}“', { name: { raw: shared.name } }) : msg('Aus Link geöffnet')) : null,
   );
   /** Name aus dem geteilten Link, als Vorschlag beim Speichern. */
   const [linkName, setLinkName] = useState<string | null>(shared?.name ?? null);
@@ -56,18 +62,20 @@ export function App() {
     setSaveStatus(null);
     setRequested((previous) => ({ ...previous, [key]: value }));
   };
+  /** Hinweis des Regelwerks zu einem Feld, in der gewählten Sprache. */
+  const note = (field: keyof typeof adjustments) => (adjustments[field] ? L.m(adjustments[field]) : undefined);
 
   /** Speichert die Eingaben unter einem Namen; liefert eine Fehlermeldung, wenn der Browser es verweigert. */
-  const save = (name: string): string | null => {
+  const save = (name: string): Msg | null => {
     try {
       const result = saveConfig(name, requested);
       setSaved(result.list);
       setCurrentId(result.entry.id);
       setLinkName(null);
-      setSaveStatus('Gespeichert');
+      setSaveStatus(msg('Gespeichert'));
       return null;
     } catch {
-      return 'Speichern nicht möglich: Der Browser lässt keinen lokalen Speicher zu.';
+      return msg('Speichern nicht möglich: Der Browser lässt keinen lokalen Speicher zu.');
     }
   };
   const quickSave = () => {
@@ -78,21 +86,30 @@ export function App() {
 
   // Die Stückliste liefert auch das Eigengewicht für Kennwerte und Hinweise.
   const description = useMemo(() => trailerParts(config, derived), [config, derived]);
-  const bom = useMemo(() => buildBom(description.parts), [description]);
+  const bom = useMemo(() => buildBom(description.parts, L), [description, L]);
   const perf = performance(config, derived, bom.totalKg);
   const quote = useMemo(() => estimateQuote(config, description.parts), [config, description]);
-  const notices = useMemo(() => advise(config, derived, bom.totalKg), [config, derived, bom]);
+  const notices = useMemo(() => advise(config, derived, bom.totalKg).map(L.m), [config, derived, bom, L]);
 
   const color = COLORS.find((c) => c.id === config.colorId) ?? COLORS[0];
-  const headline = `${config.payloadT} t Traglast, ${config.axles} Achsen, ${mm(config.lengthMm)} × ${mm(config.widthMm)}`;
-  const summary = `${headline}, Ladehöhe ${mm(config.deckHeightMm)}, ${optionName('deck', config.deck)}, ${color.ral} ${color.name}`;
-  const fileBase = `anhaenger-${config.payloadT}t-${config.lengthMm}x${config.widthMm}`;
+  const colorName = `${color.ral} ${t(color.name)}`;
+  const headline = t('{payload} t Traglast, {axles} Achsen, {length} × {width}', {
+    payload: config.payloadT,
+    axles: config.axles,
+    length: { raw: mm(config.lengthMm) },
+    width: { raw: mm(config.widthMm) },
+  });
+  const summary = `${headline}, ${t('Ladehöhe')} ${mm(config.deckHeightMm)}, ${t(optionName('deck', config.deck))}, ${colorName}`;
+  const fileBase = `${t('anhaenger')}-${config.payloadT}t-${config.lengthMm}x${config.widthMm}`;
+  const steeringText = (deg: number) => (deg === 0 ? t('Geradeaus') : `${Math.abs(deg)}° ${t(deg < 0 ? 'links' : 'rechts')}`);
+  const approx = (value: string) => t('ca. {value}', { value: { raw: value } });
+  const sizeOptions = (key: 'wallHeightMm' | 'rasterMm') => OPTIONS[key].map((o) => ({ id: o.id, name: mm(o.id) }));
 
   const saveStep = async () => {
     setStep('working');
     try {
       const { exportStep } = await import('./cad/exportStep');
-      saveBlob(await exportStep(config, derived), `${fileBase}.step`);
+      saveBlob(await exportStep(config, derived, L.partName), `${fileBase}.step`);
       setStep('idle');
     } catch {
       setStep('failed');
@@ -100,345 +117,337 @@ export function App() {
   };
 
   return (
-    <div className="app">
-      <section className="stage" aria-label="3D-Ansicht">
-        <Viewer config={config} derived={derived} showDimensions={showDimensions} resetSignal={resetSignal} />
-        <div className="stage-tools">
-          <button
-            type="button"
-            id="toggle-dimensions"
-            className="pill"
-            aria-pressed={showDimensions}
-            onClick={() => setShowDimensions((v) => !v)}
-          >
-            Maße
-          </button>
-          <button type="button" id="reset-view" className="pill" onClick={() => setResetSignal((n) => n + 1)}>
-            Ansicht zurücksetzen
-          </button>
-        </div>
-        <p className="stage-hint">Ziehen dreht das Modell, Scrollen oder Spreizen zoomt.</p>
-      </section>
-
-      <aside className="panel" aria-label="Konfiguration">
-        <header className="panel-head">
-          <p className="eyebrow">Konfigurator</p>
-          <h1>Schwerlastanhänger</h1>
-          <p className="lede">{headline}</p>
-          <div className="actions">
-            <button type="button" id="open-quote" className="button primary" onClick={() => setDialog('quote')}>
-              Angebot
-            </button>
-            <button type="button" id="open-summary" className="button" onClick={() => setDialog('summary')}>
-              Zusammenfassung
-            </button>
-            <button type="button" id="open-bom" className="button" onClick={() => setDialog('bom')}>
-              Stückliste
-            </button>
-            <button type="button" id="save-step" className="button" disabled={step === 'working'} onClick={saveStep}>
-              {step === 'working' ? 'Wird erzeugt …' : 'STEP-Modell'}
-            </button>
-          </div>
-          {step === 'failed' && (
-            <p className="note" role="alert">
-              Das STEP-Modell konnte nicht erzeugt werden. Bitte Verbindung prüfen und erneut versuchen.
-            </p>
-          )}
-          <div className="save-bar">
-            <div className="save-state">
-              <p className="save-name">{current ? current.name : 'Nicht gespeichert'}</p>
-              <p className="save-hint" aria-live="polite">
-                {saveStatus ?? (current ? (unsaved ? 'Ungespeicherte Änderungen' : 'Alle Änderungen gespeichert') : 'Noch ohne Namen')}
-              </p>
-            </div>
-            <div className="save-buttons">
-              <button type="button" id="quick-save" className="button" disabled={!!current && !unsaved} onClick={quickSave}>
-                Speichern
-              </button>
-              <button type="button" id="save-as" className="button" onClick={() => setDialog('saveAs')}>
-                Speichern unter …
-              </button>
-              <button type="button" id="open-share" className="button" onClick={() => setDialog('share')}>
-                Link teilen
-              </button>
-              <button type="button" id="open-saved" className="button" onClick={() => setDialog('saved')}>
-                Gespeicherte{saved.length > 0 ? ` (${saved.length})` : ''}
-              </button>
-            </div>
-          </div>
-        </header>
-
-        <div className="sections">
-          <Section title="Grunddaten" open>
-            <Slider id="payload" label="Nutzlast" value={config.payloadT} display={`${config.payloadT} t`} {...LIMITS.payloadT} onChange={(v) => set('payloadT', v)} />
-            <Segmented
-              id="axles"
-              label="Achsen"
-              value={config.axles}
-              note={adjustments.axles}
-              options={[2, 3, 4].map((n) => ({ id: n, name: String(n), disabled: n < derived.minAxles }))}
-              onChange={(v) => set('axles', v)}
-            />
-            {config.body === 'longload' ? (
-              <Slider id="length" label="Eingestellte Länge" value={config.lengthMm} display={mm(config.lengthMm)} min={config.minLengthMm} max={config.maxLengthMm} step={config.rasterMm} onChange={(v) => set('lengthMm', v)} />
-            ) : (
-              <Slider id="length" label="Länge" value={config.lengthMm} display={mm(config.lengthMm)} {...LIMITS.lengthMm} min={derived.minLengthMm} note={adjustments.lengthMm} onChange={(v) => set('lengthMm', v)} />
-            )}
-            <Slider id="width" label="Breite" value={config.widthMm} display={mm(config.widthMm)} {...LIMITS.widthMm} min={derived.minWidthMm} note={adjustments.widthMm} onChange={(v) => set('widthMm', v)} />
-            <Slider id="deck-height" label={config.body === 'lowbed' ? 'Höhe über den Achsen' : 'Ladehöhe'} value={config.deckHeightMm} display={mm(config.deckHeightMm)} {...LIMITS.deckHeightMm} min={derived.minDeckHeightMm} note={adjustments.deckHeightMm} onChange={(v) => set('deckHeightMm', v)} />
-          </Section>
-
-          <Section title="Bauform">
-            <Segmented id="body" label="Bauform" value={config.body} options={OPTIONS.body} onChange={(v) => set('body', v)} />
-            {config.body === 'lowbed' && (
-              <>
-                <Slider id="bed-height" label="Ladehöhe Tiefbett" value={config.bedHeightMm} display={mm(config.bedHeightMm)} {...LIMITS.bedHeightMm} max={Math.min(LIMITS.bedHeightMm.max, config.deckHeightMm - 200)} note={adjustments.bedHeightMm} onChange={(v) => set('bedHeightMm', v)} />
-                <Segmented id="rear-wheels" label="Hinterräder" value={config.rearWheels} options={OPTIONS.rearWheels} note={adjustments.rearWheels} onChange={(v) => set('rearWheels', v)} />
-                <Segmented
-                  id="ramp"
-                  label="Auffahrklappe"
-                  value={config.ramp}
-                  note={adjustments.ramp}
-                  options={OPTIONS.ramp.map((o) => ({ ...o, disabled: o.id === 'rear' && config.rearWheels === 'inside' }))}
-                  onChange={(v) => set('ramp', v)}
-                />
-              </>
-            )}
-            {config.body === 'longload' && (
-              <>
-                <Slider id="min-length" label="Mindestlänge" value={config.minLengthMm} display={mm(config.minLengthMm)} min={LIMITS.lengthMm.min} max={LIMITS.lengthMm.max} step={100} note={adjustments.minLengthMm} onChange={(v) => set('minLengthMm', v)} />
-                <Slider id="max-length" label="Maximallänge" value={config.maxLengthMm} display={mm(config.maxLengthMm)} min={LIMITS.lengthMm.min} max={LIMITS.lengthMm.max} step={100} note={adjustments.maxLengthMm} onChange={(v) => set('maxLengthMm', v)} />
-                <Segmented id="raster" label="Längenrasterung" value={config.rasterMm} options={OPTIONS.rasterMm} onChange={(v) => set('rasterMm', v)} />
-              </>
-            )}
-            {config.body === 'platform' && (
-              <>
-                <Segmented id="roof" label="Dachaufbau" value={config.roof} options={OPTIONS.roof} onChange={(v) => set('roof', v)} />
-                {config.roof !== 'none' && (
-                  <>
-                    <Segmented id="roof-shape" label="Dachform" value={config.roofShape} options={OPTIONS.roofShape} onChange={(v) => set('roofShape', v)} />
-                    <Slider id="roof-clear" label="Lichte Höhe" value={config.roofClearMm} display={mm(config.roofClearMm)} {...LIMITS.roofClearMm} onChange={(v) => set('roofClearMm', v)} />
-                    <Chips id="roof-sides" label="Seiten" value={config.roofSides} options={OPTIONS.roofSides} onChange={(v) => set('roofSides', v)} />
-                  </>
-                )}
-              </>
-            )}
-          </Section>
-
-          <Section title="Einsatz">
-            <Slider id="speed" label="Geschwindigkeit" value={config.speedKmh} display={`${config.speedKmh} km/h`} {...LIMITS.speedKmh} onChange={(v) => set('speedKmh', v)} />
-            <Segmented id="site" label="Einsatzort" value={config.site} options={OPTIONS.site} onChange={(v) => set('site', v)} />
-            <Switch id="public-roads" label="Öffentliche Verkehrswege (StVZO)" checked={config.publicRoads} onChange={(v) => set('publicRoads', v)} />
-            <Chips id="ground" label="Untergrund" value={config.ground} options={OPTIONS.ground} onChange={(v) => set('ground', v)} />
-            <Slider id="slope" label="Größte Steigung" value={config.slopePct} display={`${config.slopePct} %`} {...LIMITS.slopePct} onChange={(v) => set('slopePct', v)} />
-            <Slider id="obstacle" label="Höhe des größten Hindernisses" value={config.obstacleMm} display={mm(config.obstacleMm)} {...LIMITS.obstacleMm} onChange={(v) => set('obstacleMm', v)} />
-            <div className="number-grid">
-              <NumberField id="aisle" label="Gangbreite" unit="mm" step={50} value={config.aisleWidthMm} onChange={(v) => set('aisleWidthMm', v)} />
-              <NumberField id="curve" label="Kurvenradius" unit="mm" step={50} value={config.curveRadiusMm} onChange={(v) => set('curveRadiusMm', v)} />
-              <NumberField id="hours" label="Stunden mit Last pro Tag" unit="h" max={24} step={0.5} value={config.hoursLoadedPerDay} onChange={(v) => set('hoursLoadedPerDay', v)} />
-              <NumberField id="distance" label="Wegstrecke pro Tag" unit="km" step={0.5} value={config.distanceKmPerDay} onChange={(v) => set('distanceKmPerDay', v)} />
-            </div>
-          </Section>
-
-          <Section title="Last">
-            <Segmented id="load-type" label="Lastart" value={config.loadType} options={OPTIONS.loadType} onChange={(v) => set('loadType', v)} />
-            {config.loadType === 'custom' ? (
-              <TextArea id="load-note" label="Beschreibung der Last" value={config.loadNote} placeholder="z. B. vier Auflagepunkte, Schwerpunkt außermittig" onChange={(v) => set('loadNote', v)} />
-            ) : (
-              <>
-                <Slider id="load-length" label="Länge der Last" value={config.loadLengthMm} display={mm(config.loadLengthMm)} {...LIMITS.loadLengthMm} max={config.lengthMm} onChange={(v) => set('loadLengthMm', v)} />
-                <Slider id="load-width" label="Breite der Last" value={config.loadWidthMm} display={mm(config.loadWidthMm)} {...LIMITS.loadWidthMm} max={config.widthMm} onChange={(v) => set('loadWidthMm', v)} />
-                <Slider id="load-height" label="Höhe der Last" value={config.loadHeightMm} display={mm(config.loadHeightMm)} {...LIMITS.loadHeightMm} onChange={(v) => set('loadHeightMm', v)} />
-                <Switch id="show-load" label="Last im Modell zeigen" checked={config.showLoad} onChange={(v) => set('showLoad', v)} />
-              </>
-            )}
-          </Section>
-
-          <Section title="Fahrwerk">
-            <Chips id="steering-type" label="Lenkung" value={config.steering} options={OPTIONS.steering} onChange={(v) => set('steering', v)} />
-            <Chips id="tyre" label="Bereifung" value={config.tyre} options={OPTIONS.tyre} onChange={(v) => set('tyre', v)} />
-            <Switch id="non-marking" label="Spurfreie Bereifung" checked={config.nonMarking} onChange={(v) => set('nonMarking', v)} />
-            <Chips id="suspension" label="Federung" value={config.suspension} options={OPTIONS.suspension} onChange={(v) => set('suspension', v)} />
-            <Chips id="brake" label="Betriebsbremse" value={config.brake} options={OPTIONS.brake} onChange={(v) => set('brake', v)} />
-            <Switch id="parking-brake" label="Feststellbremse" checked={config.parkingBrake} onChange={(v) => set('parkingBrake', v)} />
-          </Section>
-
-          <Section title="Ladefläche">
-            <Chips id="deck" label="Belag" value={config.deck} options={OPTIONS.deck} onChange={(v) => set('deck', v)} />
-            {hasBoardDeck(config.deck) && config.body === 'platform' && (
-              <Segmented id="edge" label="Kantenschutz" value={config.edgeProtection} options={OPTIONS.edgeProtection} onChange={(v) => set('edgeProtection', v)} />
-            )}
-            {config.body === 'platform' && (
-              <Segmented id="wall-type" label="Bordwände" value={config.wallType} options={OPTIONS.wallType} onChange={(v) => set('wallType', v)} />
-            )}
-            {config.wallType !== 'none' && (
-              <>
-                <Segmented id="wall-material" label="Material der Bordwände" value={config.wallMaterial} options={OPTIONS.wallMaterial} onChange={(v) => set('wallMaterial', v)} />
-                <Segmented id="wall-height" label="Höhe der Bordwände" value={config.wallHeightMm} options={OPTIONS.wallHeightMm} onChange={(v) => set('wallHeightMm', v)} />
-              </>
-            )}
-            {config.body !== 'longload' && (
-              <Switch id="lashing" label="Verzurrösen zur Ladungssicherung" checked={config.lashingRings} onChange={(v) => set('lashingRings', v)} />
-            )}
-          </Section>
-
-          <Section title="Deichsel und Kupplung">
-            <Segmented id="tow-eye" label="Zugöse" value={config.towEye} options={OPTIONS.towEye} onChange={(v) => set('towEye', v)} />
-            <Switch id="drawbar-spring" label="Gefederte Höheneinstellung" checked={config.drawbarSpring} onChange={(v) => set('drawbarSpring', v)} />
-            <Slider
-              id="steering"
-              label="Lenkeinschlag"
-              value={config.steeringDeg}
-              display={steeringText(config.steeringDeg)}
-              {...LIMITS.steeringDeg}
-              min={-STEERING[config.steering].maxDeg}
-              max={STEERING[config.steering].maxDeg}
-              centered
-              disabled={config.drawbarUp}
-              note={adjustments.steeringDeg}
-              onChange={(v) => set('steeringDeg', v)}
-            />
-            <Switch id="drawbar-up" label="Deichsel hochgeklappt" checked={config.drawbarUp} onChange={(v) => set('drawbarUp', v)} />
-            <Chips id="rear-coupling" label="Kupplung hinten" value={config.rearCoupling} options={OPTIONS.rearCoupling} onChange={(v) => set('rearCoupling', v)} />
-          </Section>
-
-          <Section title="Ausstattung">
-            <Segmented id="lighting" label="Beleuchtung" value={config.lighting} options={OPTIONS.lighting} onChange={(v) => set('lighting', v)} />
-            <Chips id="chocks" label="Unterlegkeile" value={config.chocks} options={OPTIONS.chocks} onChange={(v) => set('chocks', v)} />
-            <Field label="Lackierung" value={`${color.ral} ${color.name}`}>
-              <div className="swatches" role="radiogroup" aria-label="Lackierung">
-                {COLORS.map((c) => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    id={`color-${c.id}`}
-                    role="radio"
-                    aria-checked={c.id === config.colorId}
-                    aria-label={`${c.ral} ${c.name}`}
-                    title={`${c.ral} ${c.name}`}
-                    className="swatch"
-                    style={{ background: c.hex }}
-                    onClick={() => set('colorId', c.id)}
-                  />
-                ))}
-              </div>
-            </Field>
-          </Section>
-
-          <Section title="Zugfahrzeug">
-            <div className="number-grid">
-              <NumberField id="tow-weight" label="Gesamtgewicht" unit="kg" step={50} value={config.towWeightKg} onChange={(v) => set('towWeightKg', v)} />
-              <NumberField id="coupling-height" label="Kupplungshöhe" unit="mm" step={10} max={1500} value={config.couplingHeightMm} onChange={(v) => set('couplingHeightMm', v)} />
-              <NumberField id="tow-force" label="Zugkraft am Haken" unit="N" step={100} value={config.towForceN} onChange={(v) => set('towForceN', v)} />
-            </div>
-            <Slider id="train" label="Anhänger im Zug" value={config.trailersInTrain} display={String(config.trailersInTrain)} {...LIMITS.trailersInTrain} onChange={(v) => set('trailersInTrain', v)} />
-          </Section>
-
-          <Section title="Anmerkungen">
-            <TextArea id="notes" label="Sonstige Anforderungen und Wünsche" value={config.notes} onChange={(v) => set('notes', v)} />
-          </Section>
-        </div>
-
-        {notices.length > 0 && (
-          <section className="group" aria-label="Hinweise">
-            <h2>Hinweise</h2>
-            <ul className="notices">
-              {notices.map((n) => (
-                <li key={n}>{n}</li>
+    <LocaleContext.Provider value={L}>
+      <div className="app">
+        <section className="stage" aria-label={t('3D-Ansicht')}>
+          <Viewer config={config} derived={derived} showDimensions={showDimensions} resetSignal={resetSignal} />
+          <div className="stage-tools">
+            <select id="language" className="pill" aria-label={t('Sprache')} value={lang} onChange={(e) => setLang(e.target.value as Lang)}>
+              {LANGUAGES.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.name}
+                </option>
               ))}
-            </ul>
-          </section>
-        )}
-
-        <section className="group">
-          <h2>Kennwerte</h2>
-          <dl className="specs">
-            <Spec term="Eigengewicht" value={`ca. ${kg(bom.totalKg)}`} />
-            <Spec term="Gesamtgewicht" value={`ca. ${kg(perf.grossKg)}`} />
-            <Spec term="Fahrwerk" value={`${config.axles} × ${derived.axleType === 'pendel' ? 'Pendelachse' : 'Starrachse'}`} />
-            <Spec term="Bereifung" value={`${derived.wheelCount} × ${optionName('tyre', config.tyre)} Ø ${derived.wheelDiameterMm} mm`} />
-            <Spec term="Radlast" value={`ca. ${kg(perf.wheelLoadKg)}`} />
-            <Spec term="Zugkraftbedarf" value={`ca. ${nf.format(perf.pullN)} N`} />
-            <Spec term="Rahmenhöhe" value={mm(derived.frameHeightMm)} />
-            <Spec term="Gesamthöhe" value={mm(Math.round(description.height * 100) * 10)} />
-            {description.bed && (
-              <Spec term="Tiefbett (L × B)" value={`${mm(Math.round(description.bed.length * 100) * 10)} × ${mm(Math.round(description.bed.width * 100) * 10)}`} />
-            )}
-            <Spec term="Einzelteile" value={nf.format(bom.pieceCount)} />
-            <Spec term="Richtpreis netto" value={`ca. ${nf.format(quote.netEur)} €`} />
-          </dl>
-          <p className="footnote">
-            Anschauungsmodell. Kennwerte und Hinweise sind Schätzungen nach Faustregeln und ersetzen keine technische
-            Auslegung.
-          </p>
+            </select>
+            <button type="button" id="toggle-dimensions" className="pill" aria-pressed={showDimensions} onClick={() => setShowDimensions((v) => !v)}>
+              {t('Maße')}
+            </button>
+            <button type="button" id="reset-view" className="pill" onClick={() => setResetSignal((n) => n + 1)}>
+              {t('Ansicht zurücksetzen')}
+            </button>
+          </div>
+          <p className="stage-hint">{t('Ziehen dreht das Modell, Scrollen oder Spreizen zoomt.')}</p>
         </section>
-      </aside>
 
-      {dialog === 'bom' && <BomDialog bom={bom} summary={summary} fileBase={fileBase} onClose={closeDialog} />}
-      {dialog === 'share' && (
-        <ShareDialog url={shareUrl(requested, current?.name ?? linkName, window.location.href)} title={current?.name ?? headline} onClose={closeDialog} />
-      )}
-      {(dialog === 'saved' || dialog === 'saveAs') && (
-        <SavedDialog
-          saved={saved}
-          currentId={currentId}
-          saveAs={dialog === 'saveAs'}
-          suggestedName={linkName ?? `${optionName('body', config.body)} ${config.payloadT} t, ${nf.format(config.lengthMm)} × ${nf.format(config.widthMm)}`}
-          onSave={save}
-          onLoad={(entry) => {
-            setRequested(entry.config);
-            setCurrentId(entry.id);
-            setLinkName(null);
-            setSaveStatus(null);
-            setDialog(null);
-          }}
-          onDelete={(id) => {
-            try {
-              setSaved(deleteSaved(id));
-              if (id === currentId) setCurrentId(null);
-            } catch {
-              setSaveStatus('Löschen nicht möglich: Der Browser lässt keinen lokalen Speicher zu.');
-            }
-          }}
-          onImport={(text) => {
-            try {
-              const result = importSaved(text);
-              setSaved(result.list);
-              return result.imported === 1 ? '1 Konfiguration eingelesen.' : `${result.imported} Konfigurationen eingelesen.`;
-            } catch {
-              return 'Die Datei enthält keine Konfigurationen aus diesem Konfigurator.';
-            }
-          }}
-          onNew={() => {
-            setRequested(DEFAULT_CONFIG);
-            setCurrentId(null);
-            setLinkName(null);
-            setSaveStatus(null);
-            setDialog(null);
-          }}
-          onClose={closeDialog}
-        />
-      )}
-      {dialog === 'quote' && (
-        <QuoteDialog
-          name={current && !unsaved ? current.name : null}
-          title={`Schwerlastanhänger ${optionName('body', config.body)}, ${config.payloadT} t`}
-          prose={describeProse(config, derived)}
-          sections={describeConfig(config, derived, description, bom.totalKg, bom.pieceCount)}
-          quote={quote}
-          fileBase={fileBase}
-          onClose={closeDialog}
-        />
-      )}
-      {dialog === 'summary' && (
-        <SummaryDialog
-          sections={describeConfig(config, derived, description, bom.totalKg, bom.pieceCount)}
-          notices={notices}
-          fileBase={fileBase}
-          onClose={closeDialog}
-        />
-      )}
-    </div>
+        <aside className="panel" aria-label={t('Konfiguration')}>
+          <header className="panel-head">
+            <p className="eyebrow">{t('Konfigurator')}</p>
+            <h1>{t('Schwerlastanhänger')}</h1>
+            <p className="lede">{headline}</p>
+            <div className="actions">
+              <button type="button" id="open-quote" className="button primary" onClick={() => setDialog('quote')}>
+                {t('Angebot')}
+              </button>
+              <button type="button" id="open-summary" className="button" onClick={() => setDialog('summary')}>
+                {t('Zusammenfassung')}
+              </button>
+              <button type="button" id="open-bom" className="button" onClick={() => setDialog('bom')}>
+                {t('Stückliste')}
+              </button>
+              <button type="button" id="save-step" className="button" disabled={step === 'working'} onClick={saveStep}>
+                {t(step === 'working' ? 'Wird erzeugt …' : 'STEP-Modell')}
+              </button>
+            </div>
+            {step === 'failed' && (
+              <p className="note" role="alert">
+                {t('Das STEP-Modell konnte nicht erzeugt werden. Bitte Verbindung prüfen und erneut versuchen.')}
+              </p>
+            )}
+            <div className="save-bar">
+              <div className="save-state">
+                <p className="save-name">{current ? current.name : t('Nicht gespeichert')}</p>
+                <p className="save-hint" aria-live="polite">
+                  {saveStatus ? L.m(saveStatus) : t(current ? (unsaved ? 'Ungespeicherte Änderungen' : 'Alle Änderungen gespeichert') : 'Noch ohne Namen')}
+                </p>
+              </div>
+              <div className="save-buttons">
+                <button type="button" id="quick-save" className="button" disabled={!!current && !unsaved} onClick={quickSave}>
+                  {t('Speichern')}
+                </button>
+                <button type="button" id="save-as" className="button" onClick={() => setDialog('saveAs')}>
+                  {t('Speichern unter …')}
+                </button>
+                <button type="button" id="open-share" className="button" onClick={() => setDialog('share')}>
+                  {t('Link teilen')}
+                </button>
+                <button type="button" id="open-saved" className="button" onClick={() => setDialog('saved')}>
+                  {t('Gespeicherte')}
+                  {saved.length > 0 ? ` (${saved.length})` : ''}
+                </button>
+              </div>
+            </div>
+          </header>
+
+          <div className="sections">
+            <Section title={t('Grunddaten')} open>
+              <Slider id="payload" label={t('Nutzlast')} value={config.payloadT} display={`${config.payloadT} t`} {...LIMITS.payloadT} onChange={(v) => set('payloadT', v)} />
+              <Segmented
+                id="axles"
+                label={t('Achsen')}
+                value={config.axles}
+                note={note('axles')}
+                options={[2, 3, 4].map((n) => ({ id: n, name: String(n), disabled: n < derived.minAxles }))}
+                onChange={(v) => set('axles', v)}
+              />
+              {config.body === 'longload' ? (
+                <Slider id="length" label={t('Eingestellte Länge')} value={config.lengthMm} display={mm(config.lengthMm)} min={config.minLengthMm} max={config.maxLengthMm} step={config.rasterMm} onChange={(v) => set('lengthMm', v)} />
+              ) : (
+                <Slider id="length" label={t('Länge')} value={config.lengthMm} display={mm(config.lengthMm)} {...LIMITS.lengthMm} min={derived.minLengthMm} note={note('lengthMm')} onChange={(v) => set('lengthMm', v)} />
+              )}
+              <Slider id="width" label={t('Breite')} value={config.widthMm} display={mm(config.widthMm)} {...LIMITS.widthMm} min={derived.minWidthMm} note={note('widthMm')} onChange={(v) => set('widthMm', v)} />
+              <Slider id="deck-height" label={t(config.body === 'lowbed' ? 'Höhe über den Achsen' : 'Ladehöhe')} value={config.deckHeightMm} display={mm(config.deckHeightMm)} {...LIMITS.deckHeightMm} min={derived.minDeckHeightMm} note={note('deckHeightMm')} onChange={(v) => set('deckHeightMm', v)} />
+            </Section>
+
+            <Section title={t('Bauform')}>
+              <Segmented id="body" label={t('Bauform')} value={config.body} options={OPTIONS.body} onChange={(v) => set('body', v)} />
+              {config.body === 'lowbed' && (
+                <>
+                  <Slider id="bed-height" label={t('Ladehöhe Tiefbett')} value={config.bedHeightMm} display={mm(config.bedHeightMm)} {...LIMITS.bedHeightMm} max={Math.min(LIMITS.bedHeightMm.max, config.deckHeightMm - 200)} note={note('bedHeightMm')} onChange={(v) => set('bedHeightMm', v)} />
+                  <Segmented id="rear-wheels" label={t('Hinterräder')} value={config.rearWheels} options={OPTIONS.rearWheels} note={note('rearWheels')} onChange={(v) => set('rearWheels', v)} />
+                  <Segmented
+                    id="ramp"
+                    label={t('Auffahrklappe')}
+                    value={config.ramp}
+                    note={note('ramp')}
+                    options={OPTIONS.ramp.map((o) => ({ ...o, disabled: o.id === 'rear' && config.rearWheels === 'inside' }))}
+                    onChange={(v) => set('ramp', v)}
+                  />
+                </>
+              )}
+              {config.body === 'longload' && (
+                <>
+                  <Slider id="min-length" label={t('Mindestlänge')} value={config.minLengthMm} display={mm(config.minLengthMm)} min={LIMITS.lengthMm.min} max={LIMITS.lengthMm.max} step={100} note={note('minLengthMm')} onChange={(v) => set('minLengthMm', v)} />
+                  <Slider id="max-length" label={t('Maximallänge')} value={config.maxLengthMm} display={mm(config.maxLengthMm)} min={LIMITS.lengthMm.min} max={LIMITS.lengthMm.max} step={100} note={note('maxLengthMm')} onChange={(v) => set('maxLengthMm', v)} />
+                  <Segmented id="raster" label={t('Längenrasterung')} value={config.rasterMm} options={sizeOptions('rasterMm')} onChange={(v) => set('rasterMm', v as TrailerConfig['rasterMm'])} />
+                </>
+              )}
+              {config.body === 'platform' && (
+                <>
+                  <Segmented id="roof" label={t('Dachaufbau')} value={config.roof} options={OPTIONS.roof} onChange={(v) => set('roof', v)} />
+                  {config.roof !== 'none' && (
+                    <>
+                      <Segmented id="roof-shape" label={t('Dachform')} value={config.roofShape} options={OPTIONS.roofShape} onChange={(v) => set('roofShape', v)} />
+                      <Slider id="roof-clear" label={t('Lichte Höhe')} value={config.roofClearMm} display={mm(config.roofClearMm)} {...LIMITS.roofClearMm} onChange={(v) => set('roofClearMm', v)} />
+                      <Chips id="roof-sides" label={t('Seiten')} value={config.roofSides} options={OPTIONS.roofSides} onChange={(v) => set('roofSides', v)} />
+                    </>
+                  )}
+                </>
+              )}
+            </Section>
+
+            <Section title={t('Einsatz')}>
+              <Slider id="speed" label={t('Geschwindigkeit')} value={config.speedKmh} display={`${config.speedKmh} km/h`} {...LIMITS.speedKmh} onChange={(v) => set('speedKmh', v)} />
+              <Segmented id="site" label={t('Einsatzort')} value={config.site} options={OPTIONS.site} onChange={(v) => set('site', v)} />
+              <Switch id="public-roads" label={t('Öffentliche Verkehrswege (StVZO)')} checked={config.publicRoads} onChange={(v) => set('publicRoads', v)} />
+              <Chips id="ground" label={t('Untergrund')} value={config.ground} options={OPTIONS.ground} onChange={(v) => set('ground', v)} />
+              <Slider id="slope" label={t('Größte Steigung')} value={config.slopePct} display={`${config.slopePct} %`} {...LIMITS.slopePct} onChange={(v) => set('slopePct', v)} />
+              <Slider id="obstacle" label={t('Höhe des größten Hindernisses')} value={config.obstacleMm} display={mm(config.obstacleMm)} {...LIMITS.obstacleMm} onChange={(v) => set('obstacleMm', v)} />
+              <div className="number-grid">
+                <NumberField id="aisle" label={t('Gangbreite')} unit="mm" step={50} value={config.aisleWidthMm} onChange={(v) => set('aisleWidthMm', v)} />
+                <NumberField id="curve" label={t('Kurvenradius')} unit="mm" step={50} value={config.curveRadiusMm} onChange={(v) => set('curveRadiusMm', v)} />
+                <NumberField id="hours" label={t('Stunden mit Last pro Tag')} unit="h" max={24} step={0.5} value={config.hoursLoadedPerDay} onChange={(v) => set('hoursLoadedPerDay', v)} />
+                <NumberField id="distance" label={t('Wegstrecke pro Tag')} unit="km" step={0.5} value={config.distanceKmPerDay} onChange={(v) => set('distanceKmPerDay', v)} />
+              </div>
+            </Section>
+
+            <Section title={t('Last')}>
+              <Segmented id="load-type" label={t('Lastart')} value={config.loadType} options={OPTIONS.loadType} onChange={(v) => set('loadType', v)} />
+              {config.loadType === 'custom' ? (
+                <TextArea id="load-note" label={t('Beschreibung der Last')} value={config.loadNote} placeholder={t('z. B. vier Auflagepunkte, Schwerpunkt außermittig')} onChange={(v) => set('loadNote', v)} />
+              ) : (
+                <>
+                  <Slider id="load-length" label={t('Länge der Last')} value={config.loadLengthMm} display={mm(config.loadLengthMm)} {...LIMITS.loadLengthMm} max={config.lengthMm} onChange={(v) => set('loadLengthMm', v)} />
+                  <Slider id="load-width" label={t('Breite der Last')} value={config.loadWidthMm} display={mm(config.loadWidthMm)} {...LIMITS.loadWidthMm} max={config.widthMm} onChange={(v) => set('loadWidthMm', v)} />
+                  <Slider id="load-height" label={t('Höhe der Last')} value={config.loadHeightMm} display={mm(config.loadHeightMm)} {...LIMITS.loadHeightMm} onChange={(v) => set('loadHeightMm', v)} />
+                  <Switch id="show-load" label={t('Last im Modell zeigen')} checked={config.showLoad} onChange={(v) => set('showLoad', v)} />
+                </>
+              )}
+            </Section>
+
+            <Section title={t('Fahrwerk')}>
+              <Chips id="steering-type" label={t('Lenkung')} value={config.steering} options={OPTIONS.steering} onChange={(v) => set('steering', v)} />
+              <Chips id="tyre" label={t('Bereifung')} value={config.tyre} options={OPTIONS.tyre} onChange={(v) => set('tyre', v)} />
+              <Switch id="non-marking" label={t('Spurfreie Bereifung')} checked={config.nonMarking} onChange={(v) => set('nonMarking', v)} />
+              <Chips id="suspension" label={t('Federung')} value={config.suspension} options={OPTIONS.suspension} onChange={(v) => set('suspension', v)} />
+              <Chips id="brake" label={t('Betriebsbremse')} value={config.brake} options={OPTIONS.brake} onChange={(v) => set('brake', v)} />
+              <Switch id="parking-brake" label={t('Feststellbremse')} checked={config.parkingBrake} onChange={(v) => set('parkingBrake', v)} />
+            </Section>
+
+            <Section title={t('Ladefläche')}>
+              <Chips id="deck" label={t('Belag')} value={config.deck} options={OPTIONS.deck} onChange={(v) => set('deck', v)} />
+              {hasBoardDeck(config.deck) && config.body === 'platform' && (
+                <Segmented id="edge" label={t('Kantenschutz')} value={config.edgeProtection} options={OPTIONS.edgeProtection} onChange={(v) => set('edgeProtection', v)} />
+              )}
+              {config.body === 'platform' && <Segmented id="wall-type" label={t('Bordwände')} value={config.wallType} options={OPTIONS.wallType} onChange={(v) => set('wallType', v)} />}
+              {config.wallType !== 'none' && (
+                <>
+                  <Segmented id="wall-material" label={t('Material der Bordwände')} value={config.wallMaterial} options={OPTIONS.wallMaterial} onChange={(v) => set('wallMaterial', v)} />
+                  <Segmented id="wall-height" label={t('Höhe der Bordwände')} value={config.wallHeightMm} options={sizeOptions('wallHeightMm')} onChange={(v) => set('wallHeightMm', v as TrailerConfig['wallHeightMm'])} />
+                </>
+              )}
+              {config.body !== 'longload' && <Switch id="lashing" label={t('Verzurrösen zur Ladungssicherung')} checked={config.lashingRings} onChange={(v) => set('lashingRings', v)} />}
+            </Section>
+
+            <Section title={t('Deichsel und Kupplung')}>
+              <Segmented id="tow-eye" label={t('Zugöse')} value={config.towEye} options={OPTIONS.towEye} onChange={(v) => set('towEye', v)} />
+              <Switch id="drawbar-spring" label={t('Gefederte Höheneinstellung')} checked={config.drawbarSpring} onChange={(v) => set('drawbarSpring', v)} />
+              <Slider
+                id="steering"
+                label={t('Lenkeinschlag')}
+                value={config.steeringDeg}
+                display={steeringText(config.steeringDeg)}
+                {...LIMITS.steeringDeg}
+                min={-STEERING[config.steering].maxDeg}
+                max={STEERING[config.steering].maxDeg}
+                centered
+                disabled={config.drawbarUp}
+                note={note('steeringDeg')}
+                onChange={(v) => set('steeringDeg', v)}
+              />
+              <Switch id="drawbar-up" label={t('Deichsel hochgeklappt')} checked={config.drawbarUp} onChange={(v) => set('drawbarUp', v)} />
+              <Chips id="rear-coupling" label={t('Kupplung hinten')} value={config.rearCoupling} options={OPTIONS.rearCoupling} onChange={(v) => set('rearCoupling', v)} />
+            </Section>
+
+            <Section title={t('Ausstattung')}>
+              <Segmented id="lighting" label={t('Beleuchtung')} value={config.lighting} options={OPTIONS.lighting} onChange={(v) => set('lighting', v)} />
+              <Chips id="chocks" label={t('Unterlegkeile')} value={config.chocks} options={OPTIONS.chocks} onChange={(v) => set('chocks', v)} />
+              <Field label={t('Lackierung')} value={colorName}>
+                <div className="swatches" role="radiogroup" aria-label={t('Lackierung')}>
+                  {COLORS.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      id={`color-${c.id}`}
+                      role="radio"
+                      aria-checked={c.id === config.colorId}
+                      aria-label={`${c.ral} ${t(c.name)}`}
+                      title={`${c.ral} ${t(c.name)}`}
+                      className="swatch"
+                      style={{ background: c.hex }}
+                      onClick={() => set('colorId', c.id)}
+                    />
+                  ))}
+                </div>
+              </Field>
+            </Section>
+
+            <Section title={t('Zugfahrzeug')}>
+              <div className="number-grid">
+                <NumberField id="tow-weight" label={t('Gesamtgewicht')} unit="kg" step={50} value={config.towWeightKg} onChange={(v) => set('towWeightKg', v)} />
+                <NumberField id="coupling-height" label={t('Kupplungshöhe')} unit="mm" step={10} max={1500} value={config.couplingHeightMm} onChange={(v) => set('couplingHeightMm', v)} />
+                <NumberField id="tow-force" label={t('Zugkraft am Haken')} unit="N" step={100} value={config.towForceN} onChange={(v) => set('towForceN', v)} />
+              </div>
+              <Slider id="train" label={t('Anhänger im Zug')} value={config.trailersInTrain} display={String(config.trailersInTrain)} {...LIMITS.trailersInTrain} onChange={(v) => set('trailersInTrain', v)} />
+            </Section>
+
+            <Section title={t('Anmerkungen')}>
+              <TextArea id="notes" label={t('Sonstige Anforderungen und Wünsche')} value={config.notes} onChange={(v) => set('notes', v)} />
+            </Section>
+          </div>
+
+          {notices.length > 0 && (
+            <section className="group" aria-label={t('Hinweise')}>
+              <h2>{t('Hinweise')}</h2>
+              <ul className="notices">
+                {notices.map((n) => (
+                  <li key={n}>{n}</li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          <section className="group">
+            <h2>{t('Kennwerte')}</h2>
+            <dl className="specs">
+              <Spec term={t('Eigengewicht')} value={approx(kg(bom.totalKg))} />
+              <Spec term={t('Gesamtgewicht')} value={approx(kg(perf.grossKg))} />
+              <Spec term={t('Fahrwerk')} value={`${config.axles} × ${t(derived.axleType === 'pendel' ? 'Pendelachse' : 'Starrachse')}`} />
+              <Spec term={t('Bereifung')} value={`${derived.wheelCount} × ${t(optionName('tyre', config.tyre))} Ø ${mm(derived.wheelDiameterMm)}`} />
+              <Spec term={t('Radlast')} value={approx(kg(perf.wheelLoadKg))} />
+              <Spec term={t('Zugkraftbedarf')} value={approx(`${nf(perf.pullN)} N`)} />
+              <Spec term={t('Rahmenhöhe')} value={mm(derived.frameHeightMm)} />
+              <Spec term={t('Gesamthöhe')} value={mm(Math.round(description.height * 100) * 10)} />
+              {description.bed && (
+                <Spec term={t('Tiefbett (L × B)')} value={`${mm(Math.round(description.bed.length * 100) * 10)} × ${mm(Math.round(description.bed.width * 100) * 10)}`} />
+              )}
+              <Spec term={t('Einzelteile')} value={nf(bom.pieceCount)} />
+              <Spec term={t('Richtpreis netto')} value={approx(L.eur(quote.netEur))} />
+            </dl>
+            <p className="footnote">{t('Anschauungsmodell. Kennwerte und Hinweise sind Schätzungen nach Faustregeln und ersetzen keine technische Auslegung.')}</p>
+          </section>
+        </aside>
+
+        {dialog === 'bom' && <BomDialog bom={bom} summary={summary} fileBase={fileBase} colorHex={color.hex} onClose={closeDialog} />}
+        {dialog === 'share' && (
+          <ShareDialog url={shareUrl(requested, current?.name ?? linkName, window.location.href)} title={current?.name ?? headline} onClose={closeDialog} />
+        )}
+        {(dialog === 'saved' || dialog === 'saveAs') && (
+          <SavedDialog
+            saved={saved}
+            currentId={currentId}
+            saveAs={dialog === 'saveAs'}
+            suggestedName={linkName ?? `${t(optionName('body', config.body))} ${config.payloadT} t, ${nf(config.lengthMm)} × ${nf(config.widthMm)}`}
+            onSave={save}
+            onLoad={(entry) => {
+              setRequested(entry.config);
+              setCurrentId(entry.id);
+              setLinkName(null);
+              setSaveStatus(null);
+              setDialog(null);
+            }}
+            onDelete={(id) => {
+              try {
+                setSaved(deleteSaved(id));
+                if (id === currentId) setCurrentId(null);
+              } catch {
+                setSaveStatus(msg('Löschen nicht möglich: Der Browser lässt keinen lokalen Speicher zu.'));
+              }
+            }}
+            onImport={(text) => {
+              try {
+                const result = importSaved(text);
+                setSaved(result.list);
+                return result.imported === 1 ? msg('1 Konfiguration eingelesen.') : msg('{count} Konfigurationen eingelesen.', { count: result.imported });
+              } catch {
+                return msg('Die Datei enthält keine Konfigurationen aus diesem Konfigurator.');
+              }
+            }}
+            onNew={() => {
+              setRequested(DEFAULT_CONFIG);
+              setCurrentId(null);
+              setLinkName(null);
+              setSaveStatus(null);
+              setDialog(null);
+            }}
+            onClose={closeDialog}
+          />
+        )}
+        {dialog === 'quote' && (
+          <QuoteDialog
+            name={current && !unsaved ? current.name : null}
+            title={`${t('Schwerlastanhänger')} ${t(optionName('body', config.body))}, ${config.payloadT} t`}
+            prose={describeProse(config, derived, L)}
+            sections={describeConfig(config, derived, description, bom.totalKg, bom.pieceCount, L)}
+            quote={quote}
+            fileBase={fileBase}
+            onClose={closeDialog}
+          />
+        )}
+        {dialog === 'summary' && (
+          <SummaryDialog sections={describeConfig(config, derived, description, bom.totalKg, bom.pieceCount, L)} notices={notices} fileBase={fileBase} onClose={closeDialog} />
+        )}
+      </div>
+    </LocaleContext.Provider>
   );
 }
 

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { locale } from '../i18n';
 import { advise } from './advice';
 import { buildBom } from './bom';
 import { DEFAULT_CONFIG, OPTIONS, resolve, type TrailerConfig } from './config';
@@ -219,7 +220,7 @@ describe('Lenkungsarten', () => {
 describe('Hinweise', () => {
   const notes = (o: Partial<TrailerConfig>) => {
     const { config, derived, bom } = check(o);
-    return advise(config, derived, bom.totalKg);
+    return advise(config, derived, bom.totalKg).map(locale('de').m);
   };
 
   it('bleibt bei der Standardkonfiguration still', () => {

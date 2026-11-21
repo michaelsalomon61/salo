@@ -1,17 +1,15 @@
 /** Alle Angaben der Konfiguration als lesbare Liste, für Anzeige und Export. */
+import { locale, type Locale } from '../i18n';
 import { performance } from './advice';
 import { COLORS, hasBoardDeck, optionName, type Derived, type TrailerConfig } from './config';
 import type { TrailerParts } from './parts';
 
 export interface SummarySection {
+  /** Kennung des Abschnitts, unabhängig von der Sprache. */
+  id: 'basics' | 'body' | 'use' | 'load' | 'running' | 'deck' | 'drawbar' | 'equipment' | 'tow' | 'figures' | 'notes';
   title: string;
   items: [label: string, value: string][];
 }
-
-const nf = new Intl.NumberFormat('de-DE');
-const mm = (v: number) => `${nf.format(v)} mm`;
-const yesNo = (v: boolean) => (v ? 'Ja' : 'Nein');
-const optional = (v: number | null, unit: string) => (v === null ? 'Keine Angabe' : `${nf.format(v)} ${unit}`);
 
 export function describeConfig(
   c: TrailerConfig,
@@ -19,168 +17,210 @@ export function describeConfig(
   description: Pick<TrailerParts, 'bed' | 'height'>,
   tareKg: number,
   pieceCount: number,
+  L: Locale = locale('de'),
 ): SummarySection[] {
+  const { t, mm, nf } = L;
+  const yesNo = (v: boolean) => t(v ? 'Ja' : 'Nein');
+  const optional = (v: number | null, unit: string) => (v === null ? t('Keine Angabe') : `${nf(v)} ${unit}`);
+  const approx = (value: string) => t('ca. {value}', { value: { raw: value } });
   const color = COLORS.find((x) => x.id === c.colorId) ?? COLORS[0];
   const p = performance(c, d, tareKg);
 
-  const load: SummarySection['items'] = [['Lastart', optionName('loadType', c.loadType)]];
-  if (c.loadType === 'custom') load.push(['Beschreibung', c.loadNote.trim() || 'Keine Angabe']);
-  else load.push(['Abmessungen der Last (L × B × H)', `${mm(c.loadLengthMm)} × ${mm(c.loadWidthMm)} × ${mm(c.loadHeightMm)}`]);
+  const load: SummarySection['items'] = [[t('Lastart'), t(optionName('loadType', c.loadType))]];
+  if (c.loadType === 'custom') load.push([t('Beschreibung'), c.loadNote.trim() || t('Keine Angabe')]);
+  else load.push([t('Abmessungen der Last (L × B × H)'), `${mm(c.loadLengthMm)} × ${mm(c.loadWidthMm)} × ${mm(c.loadHeightMm)}`]);
 
-  const deck: SummarySection['items'] = [['Belag', optionName('deck', c.deck)]];
-  if (hasBoardDeck(c.deck)) deck.push(['Kantenschutz', optionName('edgeProtection', c.edgeProtection)]);
-  deck.push(['Bordwände', optionName('wallType', c.wallType)]);
+  const deck: SummarySection['items'] = [[t('Belag'), t(optionName('deck', c.deck))]];
+  if (hasBoardDeck(c.deck) && c.body === 'platform') deck.push([t('Kantenschutz'), t(optionName('edgeProtection', c.edgeProtection))]);
+  if (c.body === 'platform') deck.push([t('Bordwände'), t(optionName('wallType', c.wallType))]);
   if (c.wallType !== 'none') {
-    deck.push(['Material der Bordwände', optionName('wallMaterial', c.wallMaterial)], ['Höhe der Bordwände', mm(c.wallHeightMm)]);
+    deck.push([t('Material der Bordwände'), t(optionName('wallMaterial', c.wallMaterial))], [t('Höhe der Bordwände'), mm(c.wallHeightMm)]);
   }
-  deck.push(['Verzurrösen', yesNo(c.lashingRings)]);
+  if (c.body !== 'longload') deck.push([t('Verzurrösen'), yesNo(c.lashingRings)]);
 
-  const body: SummarySection['items'] = [['Bauform', optionName('body', c.body)]];
+  const body: SummarySection['items'] = [[t('Bauform'), t(optionName('body', c.body))]];
   if (c.body === 'lowbed') {
-    body.push(['Ladehöhe Tiefbett', mm(c.bedHeightMm)], ['Hinterräder', optionName('rearWheels', c.rearWheels)], ['Auffahrklappe', optionName('ramp', c.ramp)]);
+    body.push([t('Ladehöhe Tiefbett'), mm(c.bedHeightMm)], [t('Hinterräder'), t(optionName('rearWheels', c.rearWheels))], [t('Auffahrklappe'), t(optionName('ramp', c.ramp))]);
     if (description.bed) {
-      body.push(['Tiefbett (L × B)', `${mm(Math.round(description.bed.length * 100) * 10)} × ${mm(Math.round(description.bed.width * 100) * 10)}`]);
+      body.push([t('Tiefbett (L × B)'), `${mm(Math.round(description.bed.length * 100) * 10)} × ${mm(Math.round(description.bed.width * 100) * 10)}`]);
     }
   } else if (c.body === 'longload') {
-    body.push(['Mindestlänge', mm(c.minLengthMm)], ['Maximallänge', mm(c.maxLengthMm)], ['Längenrasterung', mm(c.rasterMm)]);
+    body.push([t('Mindestlänge'), mm(c.minLengthMm)], [t('Maximallänge'), mm(c.maxLengthMm)], [t('Längenrasterung'), mm(c.rasterMm)]);
   } else {
-    body.push(['Dachaufbau', optionName('roof', c.roof)]);
+    body.push([t('Dachaufbau'), t(optionName('roof', c.roof))]);
     if (c.roof !== 'none') {
-      body.push(
-        ['Dachform', optionName('roofShape', c.roofShape)],
-        ['Lichte Höhe', mm(c.roofClearMm)],
-        ['Seiten', optionName('roofSides', c.roofSides)],
-      );
+      body.push([t('Dachform'), t(optionName('roofShape', c.roofShape))], [t('Lichte Höhe'), mm(c.roofClearMm)], [t('Seiten'), t(optionName('roofSides', c.roofSides))]);
     }
   }
 
-  return [
+  const sections: SummarySection[] = [
     {
-      title: 'Grunddaten',
+      id: 'basics',
+      title: t('Grunddaten'),
       items: [
-        ['Nutzlast', `${c.payloadT} t`],
-        [c.body === 'longload' ? 'Eingestellte Länge × Breite' : 'Ladefläche (L × B)', `${mm(c.lengthMm)} × ${mm(c.widthMm)}`],
-        [c.body === 'lowbed' ? 'Höhe über den Achsen' : 'Ladehöhe', mm(c.deckHeightMm)],
-        ['Achsen', `${c.axles} × ${d.axleType === 'pendel' ? 'Pendelachse' : 'Starrachse'}`],
+        [t('Nutzlast'), `${c.payloadT} t`],
+        [t(c.body === 'longload' ? 'Eingestellte Länge × Breite' : 'Ladefläche (L × B)'), `${mm(c.lengthMm)} × ${mm(c.widthMm)}`],
+        [t(c.body === 'lowbed' ? 'Höhe über den Achsen' : 'Ladehöhe'), mm(c.deckHeightMm)],
+        [t('Achsen'), `${c.axles} × ${t(d.axleType === 'pendel' ? 'Pendelachse' : 'Starrachse')}`],
       ],
     },
-    { title: 'Bauform', items: body },
+    { id: 'body', title: t('Bauform'), items: body },
     {
-      title: 'Einsatz',
+      id: 'use',
+      title: t('Einsatz'),
       items: [
-        ['Geschwindigkeit', `${c.speedKmh} km/h`],
-        ['Einsatzort', optionName('site', c.site)],
-        ['Öffentliche Verkehrswege (StVZO)', yesNo(c.publicRoads)],
-        ['Untergrund', optionName('ground', c.ground)],
-        ['Größte Steigung', `${c.slopePct} %`],
-        ['Höhe des größten Hindernisses', mm(c.obstacleMm)],
-        ['Gangbreite', optional(c.aisleWidthMm, 'mm')],
-        ['Kurvenradius', optional(c.curveRadiusMm, 'mm')],
-        ['Stunden mit Last pro Tag', optional(c.hoursLoadedPerDay, 'h')],
-        ['Wegstrecke pro Tag', optional(c.distanceKmPerDay, 'km')],
+        [t('Geschwindigkeit'), `${c.speedKmh} km/h`],
+        [t('Einsatzort'), t(optionName('site', c.site))],
+        [t('Öffentliche Verkehrswege (StVZO)'), yesNo(c.publicRoads)],
+        [t('Untergrund'), t(optionName('ground', c.ground))],
+        [t('Größte Steigung'), `${c.slopePct} %`],
+        [t('Höhe des größten Hindernisses'), mm(c.obstacleMm)],
+        [t('Gangbreite'), optional(c.aisleWidthMm, 'mm')],
+        [t('Kurvenradius'), optional(c.curveRadiusMm, 'mm')],
+        [t('Stunden mit Last pro Tag'), optional(c.hoursLoadedPerDay, 'h')],
+        [t('Wegstrecke pro Tag'), optional(c.distanceKmPerDay, 'km')],
       ],
     },
-    { title: 'Last', items: load },
+    { id: 'load', title: t('Last'), items: load },
     {
-      title: 'Fahrwerk',
+      id: 'running',
+      title: t('Fahrwerk'),
       items: [
-        ['Lenkung', optionName('steering', c.steering)],
-        ['Bereifung', `${optionName('tyre', c.tyre)}${c.nonMarking ? ', spurfrei' : ''}`],
-        ['Räder', `${d.wheelCount} × Ø ${d.wheelDiameterMm} mm`],
-        ['Federung', optionName('suspension', c.suspension)],
-        ['Bremse', optionName('brake', c.brake)],
-        ['Feststellbremse', yesNo(c.parkingBrake)],
+        [t('Lenkung'), t(optionName('steering', c.steering))],
+        [t('Bereifung'), `${t(optionName('tyre', c.tyre))}${c.nonMarking ? t(', spurfrei') : ''}`],
+        [t('Räder'), `${d.wheelCount} × Ø ${mm(d.wheelDiameterMm)}`],
+        [t('Federung'), t(optionName('suspension', c.suspension))],
+        [t('Bremse'), t(optionName('brake', c.brake))],
+        [t('Feststellbremse'), yesNo(c.parkingBrake)],
       ],
     },
-    { title: 'Ladefläche', items: deck },
+    { id: 'deck', title: t('Ladefläche'), items: deck },
     {
-      title: 'Deichsel und Kupplung',
+      id: 'drawbar',
+      title: t('Deichsel und Kupplung'),
       items: [
-        ['Zugöse', optionName('towEye', c.towEye)],
-        ['Gefederte Höheneinstellung', yesNo(c.drawbarSpring)],
-        ['Kupplung hinten', optionName('rearCoupling', c.rearCoupling)],
-      ],
-    },
-    {
-      title: 'Ausstattung',
-      items: [
-        ['Beleuchtung', optionName('lighting', c.lighting)],
-        ['Unterlegkeile', optionName('chocks', c.chocks)],
-        ['Lackierung', `${color.ral} ${color.name}`],
+        [t('Zugöse'), t(optionName('towEye', c.towEye))],
+        [t('Gefederte Höheneinstellung'), yesNo(c.drawbarSpring)],
+        [t('Kupplung hinten'), t(optionName('rearCoupling', c.rearCoupling))],
       ],
     },
     {
-      title: 'Zugfahrzeug',
+      id: 'equipment',
+      title: t('Ausstattung'),
       items: [
-        ['Gesamtgewicht', optional(c.towWeightKg, 'kg')],
-        ['Kupplungshöhe', optional(c.couplingHeightMm, 'mm')],
-        ['Zugkraft am Haken', optional(c.towForceN, 'N')],
-        ['Anhänger im Zug', String(c.trailersInTrain)],
+        [t('Beleuchtung'), t(optionName('lighting', c.lighting))],
+        [t('Unterlegkeile'), t(optionName('chocks', c.chocks))],
+        [t('Lackierung'), `${color.ral} ${t(color.name)}`],
       ],
     },
     {
-      title: 'Kennwerte (Schätzung)',
+      id: 'tow',
+      title: t('Zugfahrzeug'),
       items: [
-        ['Eigengewicht', `ca. ${nf.format(tareKg)} kg`],
-        ['Gesamtgewicht', `ca. ${nf.format(p.grossKg)} kg`],
-        ['Radlast', `ca. ${nf.format(p.wheelLoadKg)} kg`],
-        ['Zugkraftbedarf', `ca. ${nf.format(p.pullN)} N`],
-        ['Rahmenhöhe', mm(d.frameHeightMm)],
-        ['Gesamthöhe', mm(Math.round(description.height * 100) * 10)],
-        ['Einzelteile', nf.format(pieceCount)],
+        [t('Gesamtgewicht'), optional(c.towWeightKg, 'kg')],
+        [t('Kupplungshöhe'), optional(c.couplingHeightMm, 'mm')],
+        [t('Zugkraft am Haken'), optional(c.towForceN, 'N')],
+        [t('Anhänger im Zug'), String(c.trailersInTrain)],
       ],
     },
-    ...(c.notes.trim() ? [{ title: 'Anmerkungen', items: [['Text', c.notes.trim()] as [string, string]] }] : []),
+    {
+      id: 'figures',
+      title: t('Kennwerte (Schätzung)'),
+      items: [
+        [t('Eigengewicht'), approx(L.kg(tareKg))],
+        [t('Gesamtgewicht'), approx(L.kg(p.grossKg))],
+        [t('Radlast'), approx(L.kg(p.wheelLoadKg))],
+        [t('Zugkraftbedarf'), approx(`${nf(p.pullN)} N`)],
+        [t('Rahmenhöhe'), mm(d.frameHeightMm)],
+        [t('Gesamthöhe'), mm(Math.round(description.height * 100) * 10)],
+        [t('Einzelteile'), nf(pieceCount)],
+      ],
+    },
   ];
+  if (c.notes.trim()) sections.push({ id: 'notes', title: t('Anmerkungen'), items: [[t('Text'), c.notes.trim()]] });
+  return sections;
 }
 
 /** Kurzbeschreibung der Konfiguration in ganzen Sätzen, für das Angebot. */
-export function describeProse(c: TrailerConfig, d: Derived): string {
+export function describeProse(c: TrailerConfig, d: Derived, L: Locale = locale('de')): string {
+  const { t, mm } = L;
   const color = COLORS.find((x) => x.id === c.colorId) ?? COLORS[0];
-  const type = { platform: 'Plattformanhänger', lowbed: 'Tiefladeanhänger', longload: 'Langmaterialanhänger' }[c.body];
-  const sentences = [`Schwerlast-${type} mit Zugdeichsel für ${c.payloadT} t Nutzlast.`];
+  const type = { platform: 'Schwerlast-Plattformanhänger', lowbed: 'Schwerlast-Tiefladeanhänger', longload: 'Schwerlast-Langmaterialanhänger' }[c.body];
+  const sentences = [t('{type} mit Zugdeichsel für {payload} t Nutzlast.', { type, payload: c.payloadT })];
 
   if (c.body === 'longload') {
     sentences.push(
-      `Zwei Fahrgestellmodule mit Rungenschemeln, verbunden durch ein Langrohr, ausziehbar von ${mm(c.minLengthMm)} bis ${mm(c.maxLengthMm)} im Raster von ${mm(c.rasterMm)}; Breite ${mm(c.widthMm)}, Auflagehöhe ${mm(c.deckHeightMm + 140)}.`,
+      t('Zwei Fahrgestellmodule mit Rungenschemeln, verbunden durch ein Langrohr, ausziehbar von {min} bis {max} im Raster von {raster}; Breite {width}, Auflagehöhe {height}.', {
+        min: { raw: mm(c.minLengthMm) },
+        max: { raw: mm(c.maxLengthMm) },
+        raster: { raw: mm(c.rasterMm) },
+        width: { raw: mm(c.widthMm) },
+        height: { raw: mm(c.deckHeightMm + 140) },
+      }),
     );
   } else if (c.body === 'lowbed') {
     sentences.push(
-      `Gesamtlänge ${mm(c.lengthMm)}, Breite ${mm(c.widthMm)}, Ladehöhe im Tiefbett ${mm(c.bedHeightMm)}, Hinterräder ${optionName('rearWheels', c.rearWheels).toLowerCase()}${c.ramp === 'none' ? '' : `, Auffahrklappe ${optionName('ramp', c.ramp).toLowerCase()}`}.`,
+      t('Gesamtlänge {length}, Breite {width}, Ladehöhe im Tiefbett {bed}, Hinterräder: {wheels}, Auffahrklappe: {ramp}.', {
+        length: { raw: mm(c.lengthMm) },
+        width: { raw: mm(c.widthMm) },
+        bed: { raw: mm(c.bedHeightMm) },
+        wheels: optionName('rearWheels', c.rearWheels),
+        ramp: optionName('ramp', c.ramp),
+      }),
     );
   } else {
-    sentences.push(`Ladefläche ${mm(c.lengthMm)} × ${mm(c.widthMm)}, Ladehöhe ${mm(c.deckHeightMm)}.`);
+    sentences.push(t('Ladefläche {length} × {width}, Ladehöhe {height}.', { length: { raw: mm(c.lengthMm) }, width: { raw: mm(c.widthMm) }, height: { raw: mm(c.deckHeightMm) } }));
   }
 
-  const deck = c.deck === 'none' ? 'Ladefläche ohne Abdeckung' : `Belag ${optionName('deck', c.deck)}`;
-  const deckExtras = [
-    c.edgeProtection !== 'none' ? optionName('edgeProtection', c.edgeProtection) : '',
-    c.wallType !== 'none' ? `Bordwände ${optionName('wallType', c.wallType).toLowerCase()}, ${optionName('wallMaterial', c.wallMaterial)}, ${mm(c.wallHeightMm)} hoch` : '',
-    c.roof !== 'none' ? `Dachaufbau mit ${c.roof === 'tarp' ? 'Plane' : 'Dachblech'} als ${optionName('roofShape', c.roofShape)}, lichte Höhe ${mm(c.roofClearMm)}` : '',
-    c.lashingRings ? 'Verzurrösen' : '',
-  ].filter(Boolean);
-  sentences.push(`${[deck, ...deckExtras].join(', ')}.`);
-
-  const brake = c.brake === 'none' ? 'ungebremst' : optionName('brake', c.brake);
+  // Aufzählungen aus einzelnen Angaben, damit sie sich in jeder Sprache sauber fügen.
+  const list = (items: string[]) => `${items.filter(Boolean).join('; ')}.`;
   sentences.push(
-    `Fahrwerk mit ${c.axles} ${d.axleType === 'pendel' ? 'Pendelachsen' : 'Starrachsen'} und ${d.wheelCount} Rädern ${optionName('tyre', c.tyre)} Ø ${d.wheelDiameterMm} mm${c.nonMarking ? ' (spurfrei)' : ''}, Lenkung ${optionName('steering', c.steering)}, ${c.suspension === 'none' ? 'ungefedert' : optionName('suspension', c.suspension)}, ${brake}${c.parkingBrake ? ', Feststellbremse' : ''}.`,
+    list([
+      t('Belag: {deck}', { deck: optionName('deck', c.deck) }),
+      c.edgeProtection !== 'none' ? t('Kantenschutz: {edge}', { edge: optionName('edgeProtection', c.edgeProtection) }) : '',
+      c.wallType !== 'none'
+        ? t('Bordwände: {type}, {material}, {height}', { type: optionName('wallType', c.wallType), material: optionName('wallMaterial', c.wallMaterial), height: { raw: mm(c.wallHeightMm) } })
+        : '',
+      c.roof !== 'none'
+        ? t('Dachaufbau: {cover}, {shape}, lichte Höhe {clear}', { cover: optionName('roof', c.roof), shape: optionName('roofShape', c.roofShape), clear: { raw: mm(c.roofClearMm) } })
+        : '',
+      c.lashingRings && c.body !== 'longload' ? t('Verzurrösen') : '',
+    ]),
   );
 
-  const extras = [
-    optionName('towEye', c.towEye),
-    c.drawbarSpring ? 'gefederte Deichsel-Höheneinstellung' : '',
-    c.rearCoupling !== 'none' ? `${optionName('rearCoupling', c.rearCoupling)} hinten` : '',
-    c.lighting !== 'none' ? `Beleuchtung ${optionName('lighting', c.lighting).toLowerCase()}` : '',
-    c.chocks !== 'none' ? `Unterlegkeile ${optionName('chocks', c.chocks).toLowerCase()}` : '',
-  ].filter(Boolean);
-  sentences.push(`${extras.join(', ')}. Lackierung ${color.ral} ${color.name}.`);
+  sentences.push(
+    list([
+      t('Fahrwerk: {axles} × {axle}, {wheels} Räder {tyre} Ø {diameter}', {
+        axles: c.axles,
+        axle: d.axleType === 'pendel' ? 'Pendelachse' : 'Starrachse',
+        wheels: d.wheelCount,
+        tyre: { raw: `${t(optionName('tyre', c.tyre))}${c.nonMarking ? t(', spurfrei') : ''}` },
+        diameter: { raw: mm(d.wheelDiameterMm) },
+      }),
+      t('Lenkung: {steering}', { steering: optionName('steering', c.steering) }),
+      t('Federung: {suspension}', { suspension: optionName('suspension', c.suspension) }),
+      t('Bremse: {brake}', { brake: optionName('brake', c.brake) }),
+      c.parkingBrake ? t('Feststellbremse') : '',
+    ]),
+  );
+
+  sentences.push(
+    list([
+      t(optionName('towEye', c.towEye)),
+      c.drawbarSpring ? t('Gefederte Höheneinstellung') : '',
+      c.rearCoupling !== 'none' ? t('Kupplung hinten: {coupling}', { coupling: optionName('rearCoupling', c.rearCoupling) }) : '',
+      c.lighting !== 'none' ? t('Beleuchtung: {lighting}', { lighting: optionName('lighting', c.lighting) }) : '',
+      c.chocks !== 'none' ? t('Unterlegkeile: {chocks}', { chocks: optionName('chocks', c.chocks) }) : '',
+      t('Lackierung: {ral} {color}', { ral: { raw: color.ral }, color: color.name }),
+    ]),
+  );
   return sentences.join(' ');
 }
 
 /** Zusammenfassung als CSV für Excel (Semikolon). */
-export function summaryToCsv(sections: SummarySection[]): string {
+export function summaryToCsv(sections: SummarySection[], L: Locale = locale('de')): string {
   const cell = (v: string) => `"${v.replace(/"/g, '""')}"`;
-  const lines = [['Abschnitt', 'Angabe', 'Wert']];
+  const lines = [[L.t('Abschnitt'), L.t('Angabe'), L.t('Wert')]];
   for (const s of sections) for (const [label, value] of s.items) lines.push([s.title, label, value]);
   return lines.map((line) => line.map(cell).join(';')).join('\r\n');
 }

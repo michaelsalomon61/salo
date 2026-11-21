@@ -7,7 +7,6 @@ import type { Derived, TrailerConfig } from '../trailer/config';
 
 const MM = 0.001;
 const VIEW_DIRECTION = new THREE.Vector3(0.85, 0.3, 0.9).normalize();
-const mmFormat = new Intl.NumberFormat('de-DE');
 
 /** Die 3D-Bühne: Renderer, Kamera, Licht, Anhänger und Maßlinien. */
 export class TrailerScene {
@@ -81,7 +80,8 @@ export class TrailerScene {
     loop();
   }
 
-  update(config: TrailerConfig, derived: Derived) {
+  /** mm schreibt eine Länge in Millimetern in der gewählten Sprache. */
+  update(config: TrailerConfig, derived: Derived, mm: (value: number) => string) {
     if (this.trailer) {
       this.scene.remove(this.trailer.group);
       this.trailer.dispose();
@@ -103,11 +103,12 @@ export class TrailerScene {
     const L = config.lengthMm * MM;
     const W = config.widthMm * MM;
     const H = config.deckHeightMm * MM;
-    const key = `${config.lengthMm}/${config.widthMm}/${config.deckHeightMm}/${Math.round(height * 100)}/${Math.round(reach * 20)}`;
+    const labels = [mm(config.lengthMm), mm(config.widthMm), mm(config.deckHeightMm)];
+    const key = `${labels.join('/')}/${Math.round(height * 100)}/${Math.round(reach * 20)}`;
     if (key === this.sizeKey) return;
     const first = this.sizeKey === '';
     this.sizeKey = key;
-    this.buildDimensions(L, W, H, config);
+    this.buildDimensions(L, W, H, labels);
 
     // Bildausschnitt mit der Größe mitführen, den Blickwinkel des Nutzers aber behalten.
     const previousFit = this.fitDistance;
@@ -228,7 +229,7 @@ export class TrailerScene {
     }
   }
 
-  private buildDimensions(L: number, W: number, H: number, config: TrailerConfig) {
+  private buildDimensions(L: number, W: number, H: number, labels: string[]) {
     this.clearDimensions();
     const gap = 0.35;
     const tick = 0.08;
@@ -262,8 +263,8 @@ export class TrailerScene {
       object.position.set(x, yy, z);
       this.dims.add(object);
     };
-    label(`${mmFormat.format(config.lengthMm)} mm`, 0, y, zSide);
-    label(`${mmFormat.format(config.widthMm)} mm`, xRear, y, 0);
-    label(`${mmFormat.format(config.deckHeightMm)} mm`, xRear, H + 0.22, zSide);
+    label(labels[0], 0, y, zSide);
+    label(labels[1], xRear, y, 0);
+    label(labels[2], xRear, H + 0.22, zSide);
   }
 }

@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { useLocale } from '../i18n/context';
 import { Dialog } from './Dialog';
 
 interface Props {
@@ -10,6 +11,7 @@ interface Props {
 
 /** Link zur Konfiguration zum Kopieren und Versenden. */
 export function ShareDialog({ url, title, onClose }: Props) {
+  const { t } = useLocale();
   const inputRef = useRef<HTMLInputElement>(null);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -32,30 +34,30 @@ export function ShareDialog({ url, title, onClose }: Props) {
   };
 
   return (
-    <Dialog title="Link teilen" subtitle={title} onClose={onClose}>
+    <Dialog title={t('Link teilen')} subtitle={title} onClose={onClose}>
       <div className="save-form">
         <div className="text-field">
           <label className="field-label" htmlFor="share-url">
-            Link zu dieser Konfiguration
+            {t('Link zu dieser Konfiguration')}
           </label>
           <input id="share-url" ref={inputRef} type="text" readOnly value={url} onFocus={(e) => e.target.select()} />
         </div>
         {typeof navigator.share === 'function' && (
           <button type="button" id="share-native" className="button" onClick={() => void share()}>
-            Senden …
+            {t('Senden …')}
           </button>
         )}
         <button type="button" id="share-copy" className="button primary" onClick={() => void copy()}>
-          Link kopieren
+          {t('Link kopieren')}
         </button>
       </div>
       <p className="status" aria-live="polite">
-        {message ?? 'Jeder, der diesen Link hat, kann die Konfiguration öffnen. Ein Konto ist nicht nötig.'}
+        {t(message ?? 'Jeder, der diesen Link hat, kann die Konfiguration öffnen. Ein Konto ist nicht nötig.')}
       </p>
       <ul className="plain-list">
-        <li>Der Link enthält den Stand von jetzt. Spätere Änderungen brauchen einen neuen Link.</li>
-        <li>Der Empfänger kann die Konfiguration ansehen, ändern und bei sich speichern. Ihre gespeicherte Konfiguration bleibt davon unberührt.</li>
-        <li>Alle Angaben stehen im Link selbst, auch der Text unter „Anmerkungen“.</li>
+        <li>{t('Der Link enthält den Stand von jetzt. Spätere Änderungen brauchen einen neuen Link.')}</li>
+        <li>{t('Der Empfänger kann die Konfiguration ansehen, ändern und bei sich speichern. Ihre gespeicherte Konfiguration bleibt davon unberührt.')}</li>
+        <li>{t('Alle Angaben stehen im Link selbst, auch der Text unter „Anmerkungen“.')}</li>
       </ul>
     </Dialog>
   );

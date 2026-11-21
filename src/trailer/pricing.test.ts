@@ -55,7 +55,7 @@ describe('Preisschätzung', () => {
   it('gibt die Aufstellung als CSV mit allen Positionen aus', () => {
     const q = quote({ brake: 'air' }).quote;
     const csv = quoteToCsv(q);
-    for (const line of q.lines) expect(csv).toContain(line.label);
+    for (const line of q.lines) expect(csv).toContain(line.label.text);
     expect(csv).toContain('Nettopreis (Schätzung)');
     expect(csv.split('\r\n')).toHaveLength(q.lines.length + 5);
   });

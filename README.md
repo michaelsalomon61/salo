@@ -12,12 +12,17 @@ Konfigurationen lassen sich unter einem Namen im Browser speichern, wieder laden
 als Datei sichern und auf einem anderen Gerät einlesen. Über „Link teilen" entsteht ein Link, der die
 Konfiguration selbst enthält: Jeder mit dem Link kann sie öffnen, ohne Konto und ohne Server.
 
+Die Oberfläche gibt es in Deutsch, Englisch und Slowakisch, umschaltbar über der 3D-Ansicht. Angebot,
+Zusammenfassung, Stückliste und die Bauteilnamen im STEP-Modell erscheinen in der gewählten Sprache, Zahlen
+in der jeweiligen Landesschreibweise.
+
 Aus der fertigen Konfiguration lassen sich vier Ergebnisse erzeugen:
 
 - **Angebot**: Beschreibung der Konfiguration mit geschätztem Preis, ohne Adressdaten, druckbar und als PDF
   speicherbar. Die Preise sind Annahmen und stehen gesammelt in `src/trailer/pricing.ts`.
 - **Zusammenfassung**: alle Angaben, Kennwerte und Hinweise auf einen Blick, speicherbar als CSV.
-- **Stückliste**: alle Bauteile mit Menge, Abmessungen, Werkstoff und Gewicht samt Summen, speicherbar als CSV.
+- **Stückliste**: alle Bauteile mit kleinem 3D-Bild, Menge, Abmessungen, Werkstoff und Gewicht samt Summen,
+  speicherbar als CSV.
 - **STEP-Modell**: jedes Bauteil als benannter Körper, Maße in Millimetern, z nach oben. Lenkung gerade,
   Deichsel waagerecht.
 
@@ -50,6 +55,9 @@ npm run dev
 - `src/trailer/advice.ts`: Kennwerte (Gewichte, Radlast, Zugkraftbedarf) und Hinweise auf Unstimmigkeiten.
 - `src/trailer/summary.ts`: die Konfiguration als lesbare Liste und als Kurzbeschreibung.
 - `src/trailer/pricing.ts`: Preismodell auf Schätzbasis (Sätze je Kilogramm, Stückpreise, Zuschläge).
+- `src/i18n/`: Sprachumschaltung. Die deutschen Texte im Code sind zugleich die Schlüssel; `translations.ts`
+  enthält dazu die englische und slowakische Fassung. Tests prüfen, dass keine Übersetzung fehlt.
+- `src/viewer/thumbnails.ts`: kleine 3D-Bilder einzelner Bauteile für die Stückliste.
 - `src/storage/saved.ts`: gespeicherte Konfigurationen im lokalen Speicher des Browsers.
 - `src/storage/share.ts`: Konfiguration als Link (Abweichungen vom Standard, kodiert hinter dem #-Zeichen).
 - `src/trailer/parts.ts`: beschreibt jedes Bauteil einmal (Form, Lage, Werkstoff). Modell, Stückliste und

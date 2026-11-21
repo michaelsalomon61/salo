@@ -99,7 +99,7 @@ export interface StepPart {
  * Alle Bauteile als Körper in Fahrzeugkoordinaten, Maße in Millimetern,
  * z nach oben. Lenkung gerade, Deichsel waagerecht.
  */
-export function buildStepParts(k: Kernel, config: TrailerConfig, derived: Derived): StepPart[] {
+export function buildStepParts(k: Kernel, config: TrailerConfig, derived: Derived, nameOf: (name: string) => string = (name) => name): StepPart[] {
   const description = trailerParts(config, derived);
   const paint = (COLORS.find((c) => c.id === config.colorId) ?? COLORS[0]).hex;
   const origins = frameOrigins(description);
@@ -127,12 +127,12 @@ export function buildStepParts(k: Kernel, config: TrailerConfig, derived: Derive
     counters.set(p.name, index);
     return {
       shape,
-      name: `${p.name} ${index}`,
+      name: `${nameOf(p.name)} ${index}`,
       color: p.kind === 'wheel' ? TYRE_COLORS[p.tyre] : p.look === 'paint' ? paint : LOOK_COLORS[p.look],
     };
   });
 }
 
-export function buildStepBlob(k: Kernel, config: TrailerConfig, derived: Derived): Blob {
-  return k.exportSTEP(buildStepParts(k, config, derived), { unit: 'MM', modelUnit: 'MM' });
+export function buildStepBlob(k: Kernel, config: TrailerConfig, derived: Derived, nameOf?: (name: string) => string): Blob {
+  return k.exportSTEP(buildStepParts(k, config, derived, nameOf), { unit: 'MM', modelUnit: 'MM' });
 }

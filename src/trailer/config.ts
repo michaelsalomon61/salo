@@ -6,6 +6,8 @@
  * technische Auslegung.
  */
 
+import { msg, type Msg } from '../i18n';
+
 /** Auswahllisten mit Anzeigenamen, gemeinsam genutzt von Bedienung und Zusammenfassung. */
 export const OPTIONS = {
   body: [
@@ -456,7 +458,7 @@ export interface Resolved {
   config: TrailerConfig;
   derived: Derived;
   /** Felder, die das Regelwerk gegenüber der Eingabe angehoben hat. */
-  adjustments: Partial<Record<AdjustedField, string>>;
+  adjustments: Partial<Record<AdjustedField, Msg>>;
 }
 
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
@@ -617,24 +619,24 @@ export function resolve(requested: TrailerConfig): Resolved {
   if (c.body === 'lowbed') {
     if (c.rearWheels === 'outside' && STEERING[c.steering].rear !== 'fixed') {
       c.rearWheels = 'inside';
-      adjustments.rearWheels = 'Gelenkte Hinterachsen laufen innen unter einem Podest.';
+      adjustments.rearWheels = msg('Gelenkte Hinterachsen laufen innen unter einem Podest.');
     }
     if (c.ramp === 'rear' && c.rearWheels === 'inside') {
       c.ramp = 'none';
-      adjustments.ramp = 'Eine Auffahrklappe hinten setzt außen laufende Hinterräder voraus.';
+      adjustments.ramp = msg('Eine Auffahrklappe hinten setzt außen laufende Hinterräder voraus.');
     }
   }
 
   // Eingeschlagen läge das Gelenk unter der Ladefläche, die Deichsel könnte nicht hochklappen.
   if (c.drawbarUp && c.steeringDeg !== 0) {
     c.steeringDeg = 0;
-    adjustments.steeringDeg = 'Hochgeklappt steht die Deichsel in Geradeausstellung.';
+    adjustments.steeringDeg = msg('Hochgeklappt steht die Deichsel in Geradeausstellung.');
   }
 
   const minAxles = minAxlesFor(c.payloadT);
   if (c.axles < minAxles) {
     c.axles = minAxles;
-    adjustments.axles = `Ab ${(minAxles - 1) * MAX_AXLE_LOAD_T + 1} t Traglast mindestens ${minAxles} Achsen.`;
+    adjustments.axles = msg('Ab {from} t Traglast mindestens {axles} Achsen.', { from: (minAxles - 1) * MAX_AXLE_LOAD_T + 1, axles: minAxles });
   }
 
   let derived = computeDerived(c);
@@ -642,17 +644,17 @@ export function resolve(requested: TrailerConfig): Resolved {
     let changed = false;
     if (c.lengthMm < derived.minLengthMm) {
       c.lengthMm = derived.minLengthMm;
-      adjustments.lengthMm = 'Auf die Mindestlänge für dieses Fahrwerk angehoben.';
+      adjustments.lengthMm = msg('Auf die Mindestlänge für dieses Fahrwerk angehoben.');
       changed = true;
     }
     if (c.widthMm < derived.minWidthMm) {
       c.widthMm = derived.minWidthMm;
-      adjustments.widthMm = 'Auf die Mindestbreite für diese Bereifung angehoben.';
+      adjustments.widthMm = msg('Auf die Mindestbreite für diese Bereifung angehoben.');
       changed = true;
     }
     if (c.deckHeightMm < derived.minDeckHeightMm) {
       c.deckHeightMm = derived.minDeckHeightMm;
-      adjustments.deckHeightMm = 'Auf die Mindesthöhe für Räder, Federung und Rahmen angehoben.';
+      adjustments.deckHeightMm = msg('Auf die Mindesthöhe für Räder, Federung und Rahmen angehoben.');
       changed = true;
     }
     if (!changed) break;
@@ -663,7 +665,7 @@ export function resolve(requested: TrailerConfig): Resolved {
     // Das Tiefbett liegt spürbar unter den Podesten und hat noch Bodenfreiheit.
     const bed = clamp(roundTo(c.bedHeightMm, 10), LIMITS.bedHeightMm.min, Math.min(LIMITS.bedHeightMm.max, c.deckHeightMm - 200));
     if (bed !== c.bedHeightMm) {
-      if (bed < c.bedHeightMm) adjustments.bedHeightMm = 'Das Tiefbett liegt mindestens 200 mm unter den Podesten.';
+      if (bed < c.bedHeightMm) adjustments.bedHeightMm = msg('Das Tiefbett liegt mindestens 200 mm unter den Podesten.');
       c.bedHeightMm = bed;
     }
   }
@@ -674,12 +676,12 @@ export function resolve(requested: TrailerConfig): Resolved {
     const module = moduleLengthMm(derived);
     const shortest = ceilTo(2 * module + 1500, 100);
     const min = clamp(roundTo(c.minLengthMm, 100), shortest, LIMITS.lengthMm.max);
-    if (min !== c.minLengthMm) adjustments.minLengthMm = 'Auf die kürzeste Länge für zwei Fahrgestellmodule angehoben.';
+    if (min !== c.minLengthMm) adjustments.minLengthMm = msg('Auf die kürzeste Länge für zwei Fahrgestellmodule angehoben.');
     c.minLengthMm = min;
     const reachMm = Math.floor((min - 2 * module - 600) / raster) * raster;
     const longest = Math.min(LIMITS.lengthMm.max, min + Math.max(0, reachMm));
     const max = clamp(min + Math.round((c.maxLengthMm - min) / raster) * raster, min, longest);
-    if (max < c.maxLengthMm) adjustments.maxLengthMm = 'Auf den Auszug begrenzt, den das Langrohr bei dieser Mindestlänge zulässt.';
+    if (max < c.maxLengthMm) adjustments.maxLengthMm = msg('Auf den Auszug begrenzt, den das Langrohr bei dieser Mindestlänge zulässt.');
     c.maxLengthMm = max;
     c.lengthMm = clamp(min + Math.round((c.lengthMm - min) / raster) * raster, min, max);
     derived = computeDerived(c);

@@ -1,16 +1,20 @@
 /** Stückliste: fasst gleiche Bauteile zusammen und bildet die Summen. */
+import { locale, type Locale } from '../i18n';
 import { GROUPS, partMassKg, type Group, type Part } from './parts';
 
 export interface BomRow {
   pos: number;
   group: Group;
+  /** Benennung in der Ausgangssprache; für die Anzeige mit Locale.partName übersetzen. */
   name: string;
   quantity: number;
-  /** Abmessungen in Millimetern, z. B. "6.000 × 250 × 12" oder "Ø 80 × 540". */
+  /** Abmessungen in Millimetern, in der Schreibweise der gewählten Sprache. */
   dimensions: string;
   material: string;
   unitKg: number;
   totalKg: number;
+  /** Eines der zusammengefassten Bauteile, als Vorlage für das Vorschaubild. */
+  part: Part;
 }
 
 export interface Bom {
@@ -21,15 +25,13 @@ export interface Bom {
   groups: { group: Group; pieceCount: number; totalKg: number }[];
 }
 
-const nf = new Intl.NumberFormat('de-DE');
-const mm = (metres: number) => nf.format(Math.round(metres * 1000));
-
-function dimensions(p: Part): string {
+function dimensions(p: Part, L: Locale): string {
+  const mm = (metres: number) => L.nf(Math.round(metres * 1000));
   switch (p.kind) {
     case 'box': {
       const [length, b, a] = [...p.size].sort((m, n) => n - m);
       const base = `${mm(length)} × ${mm(b)} × ${mm(a)}`;
-      return p.wall ? `${base}, Wand ${mm(p.wall)}` : base;
+      return p.wall ? `${base}, ${L.t('Wand')} ${mm(p.wall)}` : base;
     }
     case 'cylinder':
       return p.innerRadius
@@ -38,17 +40,18 @@ function dimensions(p: Part): string {
     case 'wheel':
       return `Ø ${mm(p.radius * 2)} × ${mm(p.width)}`;
     case 'ring':
-      return `Ø ${mm((p.radius - p.tube) * 2)} innen, Rundstahl Ø ${mm(p.tube * 2)}`;
+      return `Ø ${mm((p.radius - p.tube) * 2)} ${L.t('innen')}, ${L.t('Rundstahl')} Ø ${mm(p.tube * 2)}`;
   }
 }
 
-export function buildBom(parts: Part[]): Bom {
+export function buildBom(parts: Part[], L: Locale = locale('de')): Bom {
+  // Zusammengefasst wird unabhängig von der Anzeigesprache.
+  const neutral = locale('de');
   const byKey = new Map<string, BomRow>();
   for (const p of parts) {
     // Einzelteile einer Zukaufbaugruppe stehen nicht eigens in der Liste.
     if (p.detail) continue;
-    const dims = dimensions(p);
-    const key = `${p.group}|${p.name}|${dims}|${p.material}`;
+    const key = `${p.group}|${p.name}|${dimensions(p, neutral)}|${p.material}`;
     const row = byKey.get(key);
     if (row) {
       row.quantity += 1;
@@ -58,10 +61,11 @@ export function buildBom(parts: Part[]): Bom {
         group: p.group,
         name: p.name,
         quantity: 1,
-        dimensions: dims,
+        dimensions: dimensions(p, L),
         material: p.material,
         unitKg: Math.round(partMassKg(p) * 10) / 10,
         totalKg: 0,
+        part: p,
       });
     }
   }
@@ -97,13 +101,14 @@ export function buildBom(parts: Part[]): Bom {
 }
 
 /** Stückliste als CSV für Excel (Semikolon, Dezimalkomma). */
-export function bomToCsv(bom: Bom): string {
+export function bomToCsv(bom: Bom, L: Locale = locale('de')): string {
+  const { t } = L;
   const num = (v: number) => v.toFixed(1).replace('.', ',');
   const cell = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
   const lines = [
-    ['Pos.', 'Baugruppe', 'Benennung', 'Menge (Stk.)', 'Abmessungen (mm)', 'Werkstoff', 'Einzelgewicht (kg)', 'Gesamtgewicht (kg)'],
-    ...bom.rows.map((r) => [r.pos, r.group, r.name, r.quantity, r.dimensions, r.material, num(r.unitKg), num(r.totalKg)]),
-    ['', '', 'Summe', bom.pieceCount, '', '', '', num(bom.totalKg)],
+    [t('Pos.'), t('Baugruppe'), t('Benennung'), t('Menge (Stk.)'), t('Abmessungen (mm)'), t('Werkstoff'), t('Einzelgewicht (kg)'), t('Gesamtgewicht (kg)')],
+    ...bom.rows.map((r) => [r.pos, t(r.group), L.partName(r.name), r.quantity, r.dimensions, t(r.material), num(r.unitKg), num(r.totalKg)]),
+    ['', '', t('Summe'), bom.pieceCount, '', '', '', num(bom.totalKg)],
   ];
   return lines.map((line) => line.map(cell).join(';')).join('\r\n');
 }

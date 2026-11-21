@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useLocale } from '../i18n/context';
 import type { Derived, TrailerConfig } from '../trailer/config';
 import { TrailerScene } from './scene';
 
@@ -14,6 +15,7 @@ export function Viewer({ config, derived, showDimensions, resetSignal }: Props) 
   const hostRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<TrailerScene | null>(null);
   const [failed, setFailed] = useState(false);
+  const L = useLocale();
 
   useEffect(() => {
     try {
@@ -28,8 +30,8 @@ export function Viewer({ config, derived, showDimensions, resetSignal }: Props) 
   }, []);
 
   useEffect(() => {
-    sceneRef.current?.update(config, derived);
-  }, [config, derived]);
+    sceneRef.current?.update(config, derived, L.mm);
+  }, [config, derived, L]);
 
   useEffect(() => {
     sceneRef.current?.setDimensionsVisible(showDimensions);
@@ -40,10 +42,10 @@ export function Viewer({ config, derived, showDimensions, resetSignal }: Props) 
   }, [resetSignal]);
 
   return (
-    <div ref={hostRef} className="stage-canvas" role="img" aria-label="3D-Modell des konfigurierten Anhängers">
+    <div ref={hostRef} className="stage-canvas" role="img" aria-label={L.t('3D-Modell des konfigurierten Anhängers')}>
       {failed && (
         <p className="stage-error">
-          Die 3D-Ansicht braucht WebGL. Dieser Browser stellt es nicht bereit.
+          {L.t('Die 3D-Ansicht braucht WebGL. Dieser Browser stellt es nicht bereit.')}
         </p>
       )}
     </div>

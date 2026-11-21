@@ -5,6 +5,7 @@
  * Sie sind bewusst an einer Stelle gesammelt, damit sie sich durch echte
  * Kalkulationswerte ersetzen lassen. Beträge in Euro ohne Mehrwertsteuer.
  */
+import { locale, msg, type Locale, type Msg } from '../i18n';
 import type { TrailerConfig } from './config';
 import { GROUPS, partMassKg, type Group, type Part } from './parts';
 
@@ -108,9 +109,10 @@ export function partPriceEur(p: Part): number {
 }
 
 export interface QuoteLine {
-  label: string;
+  /** Leistung; wird erst bei der Anzeige übersetzt. */
+  label: Msg;
   /** Erläuterung, z. B. Stückzahl oder Stunden. */
-  detail?: string;
+  detail?: Msg;
   eur: number;
 }
 
@@ -146,18 +148,18 @@ export function estimateQuote(config: TrailerConfig, parts: Part[]): Quote {
     const entry = byGroup.get(group);
     if (!entry) continue;
     material += entry.eur;
-    lines.push({ label: group, detail: `${entry.pieces} Teile, Material und Fertigung`, eur: round(entry.eur) });
+    lines.push({ label: msg(group), detail: msg('{pieces} Teile, Material und Fertigung', { pieces: entry.pieces }), eur: round(entry.eur) });
   }
 
   const extras = WIRING[config.lighting] + BRAKE_LINES[config.brake] + material * SMALL_PARTS_SHARE;
-  lines.push({ label: 'Leitungen und Kleinteile', detail: 'Elektrik, Bremsleitungen, Verbindungsmittel', eur: round(extras) });
+  lines.push({ label: msg('Leitungen und Kleinteile'), detail: msg('Elektrik, Bremsleitungen, Verbindungsmittel'), eur: round(extras) });
 
   const paintedKg = counted.filter((p) => p.look === 'paint').reduce((sum, p) => sum + partMassKg(p), 0);
   const color = config.colorId.replace('ral', 'RAL ');
-  lines.push({ label: 'Lackierung', detail: `Strahlen, Grundierung, Decklack ${color}`, eur: round(paintedKg * PAINT_PER_KG) });
+  lines.push({ label: msg('Lackierung'), detail: msg('Strahlen, Grundierung, Decklack {color}', { color: { raw: color } }), eur: round(paintedKg * PAINT_PER_KG) });
 
   const hours = round(ASSEMBLY.baseHours + ASSEMBLY.hoursPerPiece * counted.length, 0.5);
-  lines.push({ label: 'Montage und Endprüfung', detail: `${hours.toLocaleString('de-DE')} Stunden`, eur: round(hours * ASSEMBLY.ratePerHour) });
+  lines.push({ label: msg('Montage und Endprüfung'), detail: msg('{hours} Stunden', { hours }), eur: round(hours * ASSEMBLY.ratePerHour) });
 
   const manufacturing = lines.reduce((sum, l) => sum + l.eur, 0);
   const engineeringShare =
@@ -165,7 +167,11 @@ export function estimateQuote(config: TrailerConfig, parts: Part[]): Quote {
     (config.body !== 'platform' ? ENGINEERING.specialBody : 0) +
     (config.roof !== 'none' ? ENGINEERING.roof : 0) +
     (config.steering !== 'turntable' ? ENGINEERING.specialSteering : 0);
-  lines.push({ label: 'Konstruktion und Auftragsabwicklung', detail: `${(engineeringShare * 100).toLocaleString('de-DE')} % der Herstellkosten`, eur: round(manufacturing * engineeringShare) });
+  lines.push({
+    label: msg('Konstruktion und Auftragsabwicklung'),
+    detail: msg('{share} % der Herstellkosten', { share: Math.round(engineeringShare * 1000) / 10 }),
+    eur: round(manufacturing * engineeringShare),
+  });
 
   const costEur = lines.reduce((sum, l) => sum + l.eur, 0);
   // Der Nettopreis wird auf volle 10 Euro gerundet; der Aufschlag ergibt sich daraus.
@@ -184,16 +190,17 @@ export function estimateQuote(config: TrailerConfig, parts: Part[]): Quote {
 }
 
 /** Die Preisaufstellung als CSV für Excel (Semikolon, Dezimalkomma). */
-export function quoteToCsv(quote: Quote): string {
+export function quoteToCsv(quote: Quote, L: Locale = locale('de')): string {
+  const { t } = L;
   const num = (v: number) => v.toFixed(2).replace('.', ',');
   const cell = (v: string) => `"${v.replace(/"/g, '""')}"`;
   const rows: [string, string, string][] = [
-    ['Position', 'Erläuterung', 'Betrag (EUR)'],
-    ...quote.lines.map((l): [string, string, string] => [l.label, l.detail ?? '', num(l.eur)]),
-    ['Gemeinkosten, Wagnis und Gewinn', '', num(quote.overheadEur)],
-    ['Nettopreis (Schätzung)', '', num(quote.netEur)],
-    ['Mehrwertsteuer 19 %', '', num(quote.vatEur)],
-    ['Bruttopreis (Schätzung)', '', num(quote.grossEur)],
+    [t('Position'), t('Erläuterung'), t('Betrag (EUR)')],
+    ...quote.lines.map((l): [string, string, string] => [L.m(l.label), l.detail ? L.m(l.detail) : '', num(l.eur)]),
+    [t('Gemeinkosten, Wagnis und Gewinn'), '', num(quote.overheadEur)],
+    [t('Nettopreis (Schätzung)'), '', num(quote.netEur)],
+    [t('Mehrwertsteuer 19 %'), '', num(quote.vatEur)],
+    [t('Bruttopreis (Schätzung)'), '', num(quote.grossEur)],
   ];
   return rows.map((r) => r.map(cell).join(';')).join('\r\n');
 }

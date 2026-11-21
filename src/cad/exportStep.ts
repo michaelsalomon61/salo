@@ -21,6 +21,7 @@ function loadKernel() {
   return kernel;
 }
 
-export async function exportStep(config: TrailerConfig, derived: Derived): Promise<Blob> {
-  return buildStepBlob(await loadKernel(), config, derived);
+/** nameOf übersetzt die Bauteilnamen in die Sprache, in der die Körper im CAD-System heißen sollen. */
+export async function exportStep(config: TrailerConfig, derived: Derived, nameOf?: (name: string) => string): Promise<Blob> {
+  return buildStepBlob(await loadKernel(), config, derived, nameOf);
 }
