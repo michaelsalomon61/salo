@@ -4,10 +4,12 @@ import { advise, performance } from './trailer/advice';
 import { buildBom } from './trailer/bom';
 import { COLORS, DEFAULT_CONFIG, LIMITS, OPTIONS, STEERING, hasBoardDeck, optionName, resolve, type TrailerConfig } from './trailer/config';
 import { trailerParts } from './trailer/parts';
-import { describeConfig } from './trailer/summary';
+import { estimateQuote } from './trailer/pricing';
+import { describeConfig, describeProse } from './trailer/summary';
 import { BomDialog } from './ui/BomDialog';
 import { Chips, Field, NumberField, Section, Segmented, Slider, Switch, TextArea } from './ui/controls';
 import { saveBlob } from './ui/download';
+import { QuoteDialog } from './ui/QuoteDialog';
 import { SavedDialog } from './ui/SavedDialog';
 import { SummaryDialog } from './ui/SummaryDialog';
 import { Viewer } from './viewer/Viewer';
@@ -33,7 +35,7 @@ export function App() {
   }, [requested, currentId]);
   const [showDimensions, setShowDimensions] = useState(true);
   const [resetSignal, setResetSignal] = useState(0);
-  const [dialog, setDialog] = useState<'summary' | 'bom' | 'saved' | null>(null);
+  const [dialog, setDialog] = useState<'summary' | 'bom' | 'saved' | 'quote' | null>(null);
   const closeDialog = useCallback(() => setDialog(null), []);
   const [step, setStep] = useState<'idle' | 'working' | 'failed'>('idle');
 
@@ -65,6 +67,7 @@ export function App() {
   const description = useMemo(() => trailerParts(config, derived), [config, derived]);
   const bom = useMemo(() => buildBom(description.parts), [description]);
   const perf = performance(config, derived, bom.totalKg);
+  const quote = useMemo(() => estimateQuote(config, description.parts), [config, description]);
   const notices = useMemo(() => advise(config, derived, bom.totalKg), [config, derived, bom]);
 
   const color = COLORS.find((c) => c.id === config.colorId) ?? COLORS[0];
@@ -110,7 +113,10 @@ export function App() {
           <h1>Schwerlastanhänger</h1>
           <p className="lede">{headline}</p>
           <div className="actions">
-            <button type="button" id="open-summary" className="button primary" onClick={() => setDialog('summary')}>
+            <button type="button" id="open-quote" className="button primary" onClick={() => setDialog('quote')}>
+              Angebot
+            </button>
+            <button type="button" id="open-summary" className="button" onClick={() => setDialog('summary')}>
               Zusammenfassung
             </button>
             <button type="button" id="open-bom" className="button" onClick={() => setDialog('bom')}>
@@ -338,6 +344,7 @@ export function App() {
               <Spec term="Tiefbett (L × B)" value={`${mm(Math.round(description.bed.length * 100) * 10)} × ${mm(Math.round(description.bed.width * 100) * 10)}`} />
             )}
             <Spec term="Einzelteile" value={nf.format(bom.pieceCount)} />
+            <Spec term="Richtpreis netto" value={`ca. ${nf.format(quote.netEur)} €`} />
           </dl>
           <p className="footnote">
             Anschauungsmodell. Kennwerte und Hinweise sind Schätzungen nach Faustregeln und ersetzen keine technische
@@ -382,6 +389,17 @@ export function App() {
             setSaveStatus(null);
             setDialog(null);
           }}
+          onClose={closeDialog}
+        />
+      )}
+      {dialog === 'quote' && (
+        <QuoteDialog
+          name={current && !unsaved ? current.name : null}
+          title={`Schwerlastanhänger ${optionName('body', config.body)}, ${config.payloadT} t`}
+          prose={describeProse(config, derived)}
+          sections={describeConfig(config, derived, description, bom.totalKg, bom.pieceCount)}
+          quote={quote}
+          fileBase={fileBase}
           onClose={closeDialog}
         />
       )}

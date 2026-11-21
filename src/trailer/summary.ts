@@ -134,6 +134,49 @@ export function describeConfig(
   ];
 }
 
+/** Kurzbeschreibung der Konfiguration in ganzen Sätzen, für das Angebot. */
+export function describeProse(c: TrailerConfig, d: Derived): string {
+  const color = COLORS.find((x) => x.id === c.colorId) ?? COLORS[0];
+  const type = { platform: 'Plattformanhänger', lowbed: 'Tiefladeanhänger', longload: 'Langmaterialanhänger' }[c.body];
+  const sentences = [`Schwerlast-${type} mit Zugdeichsel für ${c.payloadT} t Nutzlast.`];
+
+  if (c.body === 'longload') {
+    sentences.push(
+      `Zwei Fahrgestellmodule mit Rungenschemeln, verbunden durch ein Langrohr, ausziehbar von ${mm(c.minLengthMm)} bis ${mm(c.maxLengthMm)} im Raster von ${mm(c.rasterMm)}; Breite ${mm(c.widthMm)}, Auflagehöhe ${mm(c.deckHeightMm + 140)}.`,
+    );
+  } else if (c.body === 'lowbed') {
+    sentences.push(
+      `Gesamtlänge ${mm(c.lengthMm)}, Breite ${mm(c.widthMm)}, Ladehöhe im Tiefbett ${mm(c.bedHeightMm)}, Hinterräder ${optionName('rearWheels', c.rearWheels).toLowerCase()}${c.ramp === 'none' ? '' : `, Auffahrklappe ${optionName('ramp', c.ramp).toLowerCase()}`}.`,
+    );
+  } else {
+    sentences.push(`Ladefläche ${mm(c.lengthMm)} × ${mm(c.widthMm)}, Ladehöhe ${mm(c.deckHeightMm)}.`);
+  }
+
+  const deck = c.deck === 'none' ? 'Ladefläche ohne Abdeckung' : `Belag ${optionName('deck', c.deck)}`;
+  const deckExtras = [
+    c.edgeProtection !== 'none' ? optionName('edgeProtection', c.edgeProtection) : '',
+    c.wallType !== 'none' ? `Bordwände ${optionName('wallType', c.wallType).toLowerCase()}, ${optionName('wallMaterial', c.wallMaterial)}, ${mm(c.wallHeightMm)} hoch` : '',
+    c.roof !== 'none' ? `Dachaufbau mit ${c.roof === 'tarp' ? 'Plane' : 'Dachblech'} als ${optionName('roofShape', c.roofShape)}, lichte Höhe ${mm(c.roofClearMm)}` : '',
+    c.lashingRings ? 'Verzurrösen' : '',
+  ].filter(Boolean);
+  sentences.push(`${[deck, ...deckExtras].join(', ')}.`);
+
+  const brake = c.brake === 'none' ? 'ungebremst' : optionName('brake', c.brake);
+  sentences.push(
+    `Fahrwerk mit ${c.axles} ${d.axleType === 'pendel' ? 'Pendelachsen' : 'Starrachsen'} und ${d.wheelCount} Rädern ${optionName('tyre', c.tyre)} Ø ${d.wheelDiameterMm} mm${c.nonMarking ? ' (spurfrei)' : ''}, Lenkung ${optionName('steering', c.steering)}, ${c.suspension === 'none' ? 'ungefedert' : optionName('suspension', c.suspension)}, ${brake}${c.parkingBrake ? ', Feststellbremse' : ''}.`,
+  );
+
+  const extras = [
+    optionName('towEye', c.towEye),
+    c.drawbarSpring ? 'gefederte Deichsel-Höheneinstellung' : '',
+    c.rearCoupling !== 'none' ? `${optionName('rearCoupling', c.rearCoupling)} hinten` : '',
+    c.lighting !== 'none' ? `Beleuchtung ${optionName('lighting', c.lighting).toLowerCase()}` : '',
+    c.chocks !== 'none' ? `Unterlegkeile ${optionName('chocks', c.chocks).toLowerCase()}` : '',
+  ].filter(Boolean);
+  sentences.push(`${extras.join(', ')}. Lackierung ${color.ral} ${color.name}.`);
+  return sentences.join(' ');
+}
+
 /** Zusammenfassung als CSV für Excel (Semikolon). */
 export function summaryToCsv(sections: SummarySection[]): string {
   const cell = (v: string) => `"${v.replace(/"/g, '""')}"`;
