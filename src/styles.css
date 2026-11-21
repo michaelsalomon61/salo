@@ -263,46 +263,9 @@ dd {
   gap: 12px 24px;
 }
 
-.dialog-actions .segmented {
-  flex: 1 1 320px;
-  max-width: 520px;
-}
-
 .dialog-actions .footnote {
   flex: 1 1 320px;
   max-width: 70ch;
-}
-
-.render-frame {
-  aspect-ratio: 16 / 9;
-  max-width: 100%;
-  border-radius: 20px;
-  overflow: hidden;
-  background: radial-gradient(120% 90% at 50% 35%, var(--stage-from), var(--stage-to));
-}
-
-.render-frame canvas {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-
-.progress {
-  height: 4px;
-  border-radius: 2px;
-  background: var(--track);
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  background: var(--accent);
-  transition: width 0.3s;
-}
-
-.status {
-  color: var(--fg-muted);
-  font-variant-numeric: tabular-nums;
 }
 
 .totals {
@@ -651,8 +614,7 @@ input[type='range']:disabled {
 
 @media (prefers-reduced-motion: reduce) {
   .switch-row input,
-  .switch-row input::after,
-  .progress-fill {
+  .switch-row input::after {
     transition: none;
   }
 }

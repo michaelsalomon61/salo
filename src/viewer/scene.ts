@@ -10,12 +10,6 @@ const MM = 0.001;
 const VIEW_DIRECTION = new THREE.Vector3(0.85, 0.3, 0.9).normalize();
 const mmFormat = new Intl.NumberFormat('de-DE');
 
-export interface CameraPose {
-  position: [number, number, number];
-  target: [number, number, number];
-  fov: number;
-}
-
 /** Die 3D-Bühne: Renderer, Kamera, Licht, Anhänger und Maßlinien. */
 export class TrailerScene {
   private readonly renderer: THREE.WebGLRenderer;
@@ -140,15 +134,6 @@ export class TrailerScene {
 
   setDimensionsVisible(visible: boolean) {
     this.dims.visible = visible;
-  }
-
-  /** Aktuelle Kamera, damit das Rendering denselben Blickwinkel übernehmen kann. */
-  getPose(): CameraPose {
-    return {
-      position: this.camera.position.toArray(),
-      target: this.controls.target.toArray(),
-      fov: this.camera.fov,
-    };
   }
 
   resetView() {

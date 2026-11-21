@@ -1,4 +1,4 @@
-import { Suspense, lazy, useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import { buildBom } from './trailer/bom';
 import {
   COLORS,
@@ -12,11 +12,7 @@ import {
 import { trailerParts } from './trailer/parts';
 import { BomDialog } from './ui/BomDialog';
 import { saveBlob } from './ui/download';
-import type { CameraPose } from './viewer/scene';
 import { Viewer } from './viewer/Viewer';
-
-// Rendering und CAD-Kern sind groß und werden erst bei Bedarf geladen.
-const RenderDialog = lazy(() => import('./ui/RenderDialog'));
 
 const nf = new Intl.NumberFormat('de-DE');
 const mm = (v: number) => `${nf.format(v)} mm`;
@@ -40,19 +36,13 @@ export function App() {
   const bom = useMemo(() => buildBom(trailerParts(config, derived).parts), [config, derived]);
   const grossKg = config.payloadT * 1000 + bom.totalKg;
 
-  const [dialog, setDialog] = useState<'render' | 'bom' | null>(null);
-  const [pose, setPose] = useState<CameraPose | null>(null);
-  const poseRef = useRef<(() => CameraPose) | null>(null);
-  const closeDialog = useCallback(() => setDialog(null), []);
+  const [bomOpen, setBomOpen] = useState(false);
+  const closeBom = useCallback(() => setBomOpen(false), []);
   const [step, setStep] = useState<'idle' | 'working' | 'failed'>('idle');
 
   const summary = `${config.payloadT} t Traglast, ${config.axles} Achsen, ${mm(config.lengthMm)} × ${mm(config.widthMm)}, Ladehöhe ${mm(config.deckHeightMm)}, ${deck.name}, ${color.ral} ${color.name}`;
   const fileBase = `anhaenger-${config.payloadT}t-${config.lengthMm}x${config.widthMm}`;
 
-  const openRender = () => {
-    setPose(poseRef.current?.() ?? null);
-    setDialog('render');
-  };
   const saveStep = async () => {
     setStep('working');
     try {
@@ -67,13 +57,7 @@ export function App() {
   return (
     <div className="app">
       <section className="stage" aria-label="3D-Ansicht">
-        <Viewer
-          config={config}
-          derived={derived}
-          showDimensions={showDimensions}
-          resetSignal={resetSignal}
-          poseRef={poseRef}
-        />
+        <Viewer config={config} derived={derived} showDimensions={showDimensions} resetSignal={resetSignal} />
         <div className="stage-tools">
           <button
             type="button"
@@ -99,10 +83,7 @@ export function App() {
             {config.payloadT} t Traglast, {config.axles} Achsen, {mm(config.lengthMm)} × {mm(config.widthMm)}
           </p>
           <div className="actions">
-            <button type="button" id="open-render" className="button primary" onClick={openRender}>
-              Rendering
-            </button>
-            <button type="button" id="open-bom" className="button" onClick={() => setDialog('bom')}>
+            <button type="button" id="open-bom" className="button primary" onClick={() => setBomOpen(true)}>
               Stückliste
             </button>
             <button type="button" id="save-step" className="button" disabled={step === 'working'} onClick={saveStep}>
@@ -238,19 +219,7 @@ export function App() {
         </Group>
       </aside>
 
-      {dialog === 'bom' && <BomDialog bom={bom} summary={summary} fileBase={fileBase} onClose={closeDialog} />}
-      {dialog === 'render' && (
-        <Suspense fallback={null}>
-          <RenderDialog
-            config={config}
-            derived={derived}
-            summary={summary}
-            fileBase={fileBase}
-            pose={pose}
-            onClose={closeDialog}
-          />
-        </Suspense>
-      )}
+      {bomOpen && <BomDialog bom={bom} summary={summary} fileBase={fileBase} onClose={closeBom} />}
     </div>
   );
 }

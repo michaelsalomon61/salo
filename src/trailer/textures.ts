@@ -42,10 +42,7 @@ export function woodTexture(): THREE.CanvasTexture {
   return tiling(c, true);
 }
 
-/**
- * Wandelt eine Höhenkarte (Helligkeit = Höhe) in eine kachelbare Normalenkarte um.
- * Normalenkarten versteht auch der Path Tracer, Höhenkarten nicht.
- */
+/** Wandelt eine Höhenkarte (Helligkeit = Höhe) in eine kachelbare Normalenkarte um. */
 function normalMapFrom(height: HTMLCanvasElement, strength: number): THREE.CanvasTexture {
   const { width: w, height: h } = height;
   const src = height.getContext('2d')!.getImageData(0, 0, w, h).data;

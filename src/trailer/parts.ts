@@ -1,8 +1,8 @@
 /**
  * Bauteilbeschreibung des Anhängers.
  *
- * Diese Liste ist die gemeinsame Quelle für das 3D-Modell, das Rendering, die
- * Stückliste und den STEP-Export. Sie enthält nur Zahlen und Texte, keine
+ * Diese Liste ist die gemeinsame Quelle für das 3D-Modell, die Stückliste und
+ * den STEP-Export. Sie enthält nur Zahlen und Texte, keine
  * 3D-Objekte. Maße in Metern, Massen in Kilogramm.
  *
  * Koordinaten: x in Fahrtrichtung (Deichsel bei +x), y nach oben, z nach rechts.

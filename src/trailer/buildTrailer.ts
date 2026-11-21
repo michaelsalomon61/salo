@@ -39,11 +39,7 @@ export function buildTrailer(config: TrailerConfig, d: Derived): TrailerBuild {
   const tyre = track(new THREE.MeshStandardMaterial({ color: 0x47474a, roughness: 0.9 }));
   const rim = track(new THREE.MeshStandardMaterial({ color: 0x141416, roughness: 0.42, metalness: 0.45 }));
 
-  /**
-   * Strukturierte Beläge. Ein Material je Bauteil, weil der Path Tracer
-   * Körper mit mehreren Materialien falsch zuordnet; die schmalen Seitenflächen
-   * tragen deshalb dieselbe Struktur wie die Oberseite.
-   */
+  /** Strukturierte Beläge; die schmalen Seitenflächen tragen dieselbe Struktur wie die Oberseite. */
   const surfaces = new Map<Look, THREE.Material>();
   const surface = (look: Look) => {
     let s = surfaces.get(look);
