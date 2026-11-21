@@ -282,14 +282,16 @@ export function trailerParts(config: TrailerConfig, d: Derived): TrailerParts {
       for (let i = 1; i < pockets; i++) {
         box('chassis', 'Rahmen', 'Rippe', [0.012, webH - 0.014, pocket - 0.006], [x0 + (i * length) / pockets, webY + 0.007, side * (width / 2 - pocket / 2)]);
       }
-      box('chassis', 'Rahmen', 'Längsträger', [length - 0.05, webH - 0.02, 0.09], [cx, webY + 0.01, side * width * 0.2], { wall: 0.008 });
+      // Die Längsträger reichen von Stirnblech zu Stirnblech.
+      box('chassis', 'Rahmen', 'Längsträger', [length - 0.024, webH - 0.02, 0.09], [cx, webY + 0.01, side * width * 0.2], { wall: 0.008 });
     }
     for (const end of [1, -1]) {
       box('chassis', 'Rahmen', 'Stirnblech', [0.012, webH, width], [cx + end * (length / 2 - 0.006), webY, 0]);
     }
     const crossCount = Math.max(2, Math.round(length / 0.9));
     const crossH = webH * 0.7;
-    const crossW = width - 2 * pocket - 0.02;
+    // Querträger reichen von Stegblech zu Stegblech der Außenträger.
+    const crossW = width - 2 * pocket - 0.012;
     for (let i = 1; i < crossCount; i++) {
       box('chassis', 'Rahmen', 'Querträger', [0.07, crossH, crossW], [x0 + (i * length) / crossCount, top - deckT - crossH / 2, 0], { wall: 0.005 });
     }
@@ -343,7 +345,7 @@ export function trailerParts(config: TrailerConfig, d: Derived): TrailerParts {
 
     const rampLength = Math.max(0.8, Math.min(2.2, bedH * 3.5));
     if (config.ramp === 'rear') {
-      box('chassis', 'Ausstattung', 'Auffahrklappe', [0.04, rampLength, side.width - 0.06], [-L / 2 - 0.03, bedH + rampLength / 2 - 0.02, 0], { wall: 0.004 });
+      box('chassis', 'Ausstattung', 'Auffahrklappe', [0.04, rampLength, side.width - 0.06], [-L / 2 - 0.02, bedH + rampLength / 2 - 0.02, 0], { wall: 0.004 });
       for (const s of [1, -1]) {
         rod('chassis', 'Ausstattung', 'Klappenscharnier', 0.018, 0.14, 'z', [-L / 2 - 0.02, bedH - 0.012, s * (side.width / 2 - 0.2)], { look: 'galvanized', ...bought(1.2, 'Stahl verzinkt') });
       }
@@ -352,14 +354,14 @@ export function trailerParts(config: TrailerConfig, d: Derived): TrailerParts {
       const freeStart = config.rearWheels === 'inside' ? side.x0 : rearX + rearGroup / 2 + 0.2;
       const width = Math.max(0.6, Math.min(2, xA - freeStart - 0.3));
       const cx = (freeStart + xA) / 2;
-      box('chassis', 'Ausstattung', 'Auffahrklappe', [width, rampLength, 0.04], [cx, bedH + rampLength / 2 - 0.02, side.width / 2 + 0.03], { wall: 0.004 });
+      box('chassis', 'Ausstattung', 'Auffahrklappe', [width, rampLength, 0.04], [cx, bedH + rampLength / 2 - 0.02, side.width / 2 + 0.02], { wall: 0.004 });
       for (const s of [1, -1]) {
         rod('chassis', 'Ausstattung', 'Klappenscharnier', 0.018, 0.14, 'x', [cx + s * (width / 2 - 0.2), bedH - 0.012, side.width / 2 + 0.02], { look: 'galvanized', ...bought(1.2, 'Stahl verzinkt') });
       }
     }
     if (config.ramp !== 'none') height = Math.max(height, bedH + rampLength);
     loadSurfaceY = bedH;
-    onDeck = { x: xA - 0.3, y: bedH, z: side.width / 2 - 0.2 };
+    onDeck = { x: xA - 0.3, y: bedH, z: side.width * 0.2 };
   } else if (config.body === 'longload') {
     // Zwei Fahrgestellmodule mit Rungenschemel, verbunden durch ein ausziehbares Langrohr.
     const module = moduleLengthMm(d) * MM;
@@ -380,7 +382,7 @@ export function trailerParts(config: TrailerConfig, d: Derived): TrailerParts {
     }
     loadSurfaceY = H + 0.14;
     height = H + 0.84;
-    onDeck = { x: rear.cx - 0.35, y: H, z: W / 2 - 0.25 };
+    onDeck = { x: rear.cx - 0.35, y: H, z: W * 0.2 };
   } else {
     front = rear = side = section(-L / 2, L / 2, H, frameH, W, true);
   }
@@ -414,9 +416,9 @@ export function trailerParts(config: TrailerConfig, d: Derived): TrailerParts {
     }
     const area = (L + 0.06) * (slope + 0.06);
     if (config.roof === 'tarp') {
-      box('chassis', 'Dachaufbau', 'Dachplane', [L + 0.06, 0.004, slope + 0.06], [0, mid + 0.065, 0], { rotX: pitch, look: 'tarp', ...bought(round1(area * 0.7), 'PVC-Plane 680 g/m²') });
+      box('chassis', 'Dachaufbau', 'Dachplane', [L + 0.06, 0.004, slope + 0.06], [0, mid + 0.062, 0], { rotX: pitch, look: 'tarp', ...bought(round1(area * 0.7), 'PVC-Plane 680 g/m²') });
     } else {
-      box('chassis', 'Dachaufbau', 'Dachblech', [L + 0.06, 0.004, slope + 0.06], [0, mid + 0.065, 0], { rotX: pitch, look: 'galvanized', ...bought(round1(area * 8.5), 'Stahl-Trapezblech verzinkt') });
+      box('chassis', 'Dachaufbau', 'Dachblech', [L + 0.06, 0.004, slope + 0.06], [0, mid + 0.062, 0], { rotX: pitch, look: 'galvanized', ...bought(round1(area * 8.5), 'Stahl-Trapezblech verzinkt') });
     }
 
     if (config.roofSides !== 'open') {
@@ -427,15 +429,15 @@ export function trailerParts(config: TrailerConfig, d: Derived): TrailerParts {
           ? { look: 'mesh', ...bought(round1(Math.max(size[0], size[2]) * size[1] * 6), 'Stahl, Drahtgitter 50 × 50') }
           : { look: 'tarp', ...bought(round1(Math.max(size[0], size[2]) * size[1] * 0.7), 'PVC-Plane 680 g/m²') });
       for (const s of [1, -1]) {
-        // Planen und Gitter liegen außen vor den Pfosten.
-        const z = s * (W / 2 + 0.004);
+        // Planen und Gitter liegen außen an den Pfosten an.
+        const z = s * (W / 2 + 0.002);
         const top = eave(s * W / 2);
         const sideName = mesh ? 'Schutzgitter seitlich' : config.roofSides === 'curtain' ? 'Vorhangplane' : 'Seitenplane';
         closure(sideName, [L - 0.02, top - low, 0.004], [0, (top + low) / 2, z]);
         if (config.roofSides === 'curtain') {
-          box('chassis', 'Dachaufbau', 'Vorhangschiene', [L, 0.03, 0.03], [0, top - 0.015, z + s * 0.02], { look: 'aluminium', material: 'Aluminium', density: 2700, wall: 0.003 });
+          box('chassis', 'Dachaufbau', 'Vorhangschiene', [L, 0.03, 0.03], [0, top - 0.015, z + s * 0.017], { look: 'aluminium', material: 'Aluminium', density: 2700, wall: 0.003 });
         }
-        closure(mesh ? 'Schutzgitter Stirnseite' : 'Stirnplane', [0.004, mid - low, W - 0.02], [s * (L / 2 + 0.004), (mid + low) / 2, 0]);
+        closure(mesh ? 'Schutzgitter Stirnseite' : 'Stirnplane', [0.004, mid - low, W - 0.02], [s * (L / 2 + 0.002), (mid + low) / 2, 0]);
       }
     }
     height = eave(-W / 2) + 0.1;
@@ -557,6 +559,14 @@ export function trailerParts(config: TrailerConfig, d: Derived): TrailerParts {
     }
   };
 
+  /** Höhe der Spurstange: bei Pendelachsen oben unter dem Träger, bei Starrachsen auf Achshöhe zwischen den Achsschenkeln. */
+  const tieRodY = (mountY: number) => (d.axleType === 'pendel' ? mountY - 0.09 : R);
+  /**
+   * Lage der Spurstange in Fahrtrichtung, bezogen auf die Achse: bei Pendelachsen dahinter,
+   * bei Starrachsen davor, damit die Schubstange zur Deichsel die Achse nicht kreuzt.
+   */
+  const tieRodDx = d.axleType === 'pendel' ? -0.2 : 0.2;
+
   /**
    * Eine Achslinie. mountY ist die Unterkante des Trägers, an dem sie hängt;
    * eine Federung sitzt zwischen Träger und Achshalter. Bei steered lenkt jede
@@ -575,6 +585,8 @@ export function trailerParts(config: TrailerConfig, d: Derived): TrailerParts {
         box(f, 'Fahrwerk', 'Gummifederelement', [0.2, springH, 0.12], [fx, y - springH / 2, z], { look: 'rubber', ...bought(4, 'Gummi-Metall') });
       } else if (config.suspension === 'leaf') {
         const length = Math.min(0.8, spacing - 0.04);
+        // Die Federböcke hängen an einer Platte, die am Achsträger darüber verschraubt ist.
+        box(f, 'Fahrwerk', 'Federträgerplatte', [length, 0.02, 0.1], [fx, y - 0.01, z]);
         box(f, 'Fahrwerk', 'Blattfederpaket', [length, 0.05, 0.07], [fx, y - springH + 0.025, z], { look: 'steel', ...bought(Math.round(length * 28), 'Federstahl') });
         for (const end of [1, -1]) {
           box(f, 'Fahrwerk', 'Federbock', [0.06, springH - 0.03, 0.09], [fx + end * (length / 2 - 0.03), y - (springH - 0.03) / 2, z]);
@@ -594,7 +606,11 @@ export function trailerParts(config: TrailerConfig, d: Derived): TrailerParts {
         const fx = steered ? 0 : x;
         const fz = steered ? 0 : zc;
         const under = steered ? mountY - 0.05 : mountY;
-        if (steered) rod(f, 'Lenkung', 'Lenkdrehkranz', 0.11, 0.03, 'y', [0, mountY - 0.035, 0], { innerRadius: 0.05 });
+        if (steered) {
+          rod(f, 'Lenkung', 'Lenkdrehkranz', 0.11, 0.03, 'y', [0, mountY - 0.035, 0], { innerRadius: 0.05 });
+          // Der Lenkhebel verbindet die Pendelachse mit der Spurstange dahinter.
+          box(f, 'Lenkung', 'Lenkhebel', [0.24, 0.03, 0.04], [tieRodDx * 0.55, tieRodY(mountY), 0], { look: 'steel' });
+        }
         const top = under - springH;
         const hangerH = top - (R - 0.06);
         wheel(f, fx, fz + (wheelW / 2 + 0.05));
@@ -603,7 +619,7 @@ export function trailerParts(config: TrailerConfig, d: Derived): TrailerParts {
         box(f, 'Fahrwerk', 'Pendelbock', [0.17, hangerH, 0.08], [fx, top - hangerH / 2, fz], { wall: 0.01 });
         rod(f, 'Fahrwerk', 'Pendelbolzen', 0.028, 0.24, 'x', [fx, top - 0.07, fz]);
         spring(f, fx, fz, under);
-        if (braked) brakeUnit(f, fx, fz - s * (wheelW + 0.08), -s);
+        if (braked) brakeUnit(f, fx, fz - s * (wheelW + 0.075), -s);
       }
     } else {
       const zWheel = stub ?? W / 2 - 0.03 - wheelW / 2;
@@ -624,16 +640,21 @@ export function trailerParts(config: TrailerConfig, d: Derived): TrailerParts {
         const fx = steered ? 0 : x;
         const fz = steered ? 0 : s * zWheel;
         wheel(f, fx, fz);
-        if (steered) box(f, 'Lenkung', 'Achsschenkel', [0.1, 0.14, 0.06], [0, R, -s * (wheelW / 2 + 0.085)], { look: 'steel' });
-        if (braked) brakeUnit(f, fx, fz - s * (wheelW / 2 + 0.03), -s);
+        if (steered) {
+          box(f, 'Lenkung', 'Achsschenkel', [0.1, 0.14, 0.06], [0, R, -s * (wheelW / 2 + 0.085)], { look: 'steel' });
+          // Das Rad läuft auf einem Zapfen am Achsschenkel; der Lenkhebel greift an der Spurstange an.
+          rod(f, 'Lenkung', 'Achszapfen', axleR, wheelW * 0.9 + 0.115, 'z', [0, R, -s * (wheelW * 0.05 + 0.0575)]);
+          box(f, 'Lenkung', 'Lenkhebel', [0.2, 0.03, 0.04], [tieRodDx * 0.6, tieRodY(mountY), -s * (wheelW / 2 + 0.085)], { look: 'steel' });
+        }
+        if (braked) brakeUnit(f, fx, fz - s * (wheelW / 2 + 0.025), -s);
       }
     }
   };
 
-  /** Spurstange, die die Achsschenkel bzw. Pendelachsen einer gelenkten Achslinie verbindet. */
+  /** Spurstange, die die Lenkhebel einer gelenkten Achslinie verbindet. */
   const tieRod = (x: number, mountY: number) => {
-    const span = d.axleType === 'pendel' ? 2 * (W / 2 - 0.03 - wheelW - 0.05) : 2 * (W / 2 - 0.03 - wheelW - 0.1);
-    rod('chassis', 'Lenkung', 'Spurstange', 0.016, span, 'z', [x - 0.2, mountY - 0.09, 0], { look: 'galvanized' });
+    const span = d.axleType === 'pendel' ? 2 * (W / 2 - 0.03 - wheelW - 0.05) : 2 * (W / 2 - 0.03 - wheelW - 0.085);
+    rod('chassis', 'Lenkung', 'Spurstange', 0.016, span + 0.04, 'z', [x + tieRodDx, tieRodY(mountY), 0], { look: 'galvanized' });
   };
 
   // Die Auflaufbremse wirkt über die Deichsel auf die Vorderachsen, alle anderen auf die Hinterachsen.
@@ -713,12 +734,20 @@ export function trailerParts(config: TrailerConfig, d: Derived): TrailerParts {
     frames.tongue = { parent: 'chassis', origin: [pivotX, subY, 0], axis: 'y', angle: -steerRad };
     drawbarParent = 'tongue';
     hingeX = 0.32;
+    // Der Lenkbock sitzt unter einem eigenen Träger zwischen den Außenträgern.
+    box('chassis', 'Lenkung', 'Lenkbockträger', [0.2, 0.08, front.crossW], [pivotX, front.yBottom + 0.04, 0], { wall: 0.01 });
     box('chassis', 'Lenkung', 'Lenkbock', [0.34, 0.05, tongueW], [pivotX, front.yBottom - 0.025, 0]);
     rod('tongue', 'Lenkung', 'Lenkbolzen', 0.03, 0.16, 'y', [0, 0, 0]);
     box('tongue', 'Lenkung', 'Deichselaufnahme', [hingeX + 0.14, subH, tongueW], [hingeX / 2 - 0.05, 0, 0], { wall: 0.01 });
     // Die Schubstange überträgt den Deichseleinschlag auf die Spurstange der ersten Achse.
     const firstAxle = Math.max(...layout.frontAxlesMm) * MM;
-    rod('chassis', 'Lenkung', 'Lenkschubstange', 0.016, pivotX - firstAxle + 0.2, 'x', [(pivotX + firstAxle - 0.2) / 2, front.yBottom - 0.09, 0.12], { look: 'galvanized' });
+    const rodY = tieRodY(front.yBottom);
+    const rodStart = firstAxle + tieRodDx;
+    rod('chassis', 'Lenkung', 'Lenkschubstange', 0.016, pivotX - rodStart, 'x', [(pivotX + rodStart) / 2, rodY, 0.12], { look: 'galvanized' });
+    // Liegt die Spurstange auf Achshöhe, führt ein Hebel von der Deichselaufnahme zu ihr hinunter.
+    if (rodY < subY - subH / 2) {
+      box('tongue', 'Lenkung', 'Lenkhebel Deichsel', [0.04, subY - subH / 2 - rodY + 0.03, 0.04], [-0.02, (rodY - 0.03 - subY - subH / 2) / 2, 0.12], { look: 'steel' });
+    }
   }
 
   // ── Deichsel ─────────────────────────────────────────────────────────────
@@ -745,7 +774,8 @@ export function trailerParts(config: TrailerConfig, d: Derived): TrailerParts {
     const zAt = z0 + (armEndZ - z0) * t;
     box('drawbar', 'Deichsel', 'Querstrebe', [0.05, 0.05, 2 * zAt], [armEndX * t, 0, 0], { wall: 0.004 });
   }
-  box('drawbar', 'Deichsel', 'Kopfstück', [drawbarLength - armEndX + 0.04, 0.07, 0.12], [(drawbarLength + armEndX) / 2, 0, 0], { wall: 0.008 });
+  // Das Kopfstück ist massiv, damit die Zugöse darin sitzt und nicht in einem Hohlprofil endet.
+  box('drawbar', 'Deichsel', 'Kopfstück', [drawbarLength - armEndX + 0.04, 0.07, 0.12], [(drawbarLength + armEndX) / 2, 0, 0]);
   rod('drawbar', 'Deichsel', 'Gelenkbolzen', 0.024, tongueW + 0.06, 'z', [0, 0, 0]);
   if (config.towEye === 'din') {
     parts.push({ kind: 'ring', frame: 'drawbar', group: 'Deichsel', name: 'DIN-Zugöse', look: 'paint', ...STEEL, radius: 0.058, tube: 0.021, axis: 'y', pos: [drawbarLength + 0.07, 0, 0] });
@@ -753,31 +783,41 @@ export function trailerParts(config: TrailerConfig, d: Derived): TrailerParts {
     rod('drawbar', 'Deichsel', 'Flachstahl-Zugöse', 0.075, 0.03, 'y', [drawbarLength + 0.075, 0, 0], { innerRadius: 0.028, look: 'paint' });
   }
   if (config.drawbarSpring) {
-    rod('drawbar', 'Deichsel', 'Deichselfeder mit Höheneinstellung', 0.035, 0.36, 'x', [0.26, 0.095, 0], bought(6.5, 'Federstahl'));
-    for (const x of [0.07, 0.45]) box('drawbar', 'Deichsel', 'Federlager', [0.03, 0.09, 0.06], [x, 0.06, 0], DETAIL);
+    // Die Feder liegt zwischen zwei Lagern, die auf den Querstreben stehen.
+    rod('drawbar', 'Deichsel', 'Deichselfeder mit Höheneinstellung', 0.035, armEndX * 0.3 + 0.03, 'x', [armEndX * 0.45, 0.095, 0], bought(6.5, 'Federstahl'));
+    for (const t of [0.3, 0.6]) box('drawbar', 'Deichsel', 'Federlager', [0.03, 0.09, 0.06], [armEndX * t, 0.07, 0], DETAIL);
   }
 
   // ── Bremsanlage ──────────────────────────────────────────────────────────
-  const frontEnd = L / 2 + 0.012;
+  // Außenflächen der Stirnbleche vorn und hinten; Anbauteile liegen dort an.
+  const frontEnd = L / 2;
   const connectorY = front.yBottom + Math.min(front.webH * 0.5, 0.1);
   if (config.brake === 'overrun') {
     box('drawbar', 'Bremse', 'Auflaufeinrichtung', [0.3, 0.09, 0.14], [drawbarLength - 0.08, 0.08, 0], { look: 'steel', ...bought(18, 'Stahlguss') });
-    rod('drawbar', 'Bremse', 'Bremsgestänge', 0.008, drawbarLength - 0.3, 'x', [(drawbarLength - 0.3) / 2, -0.05, 0], { look: 'galvanized' });
+    // Das Gestänge läuft in Führungen unter den Querstreben.
+    rod('drawbar', 'Bremse', 'Bremsgestänge', 0.008, drawbarLength - 0.3, 'x', [(drawbarLength - 0.3) / 2, -0.03, 0], { look: 'galvanized' });
   } else if (config.brake === 'air') {
-    // Der Behälter hängt unter dem Rahmen; wo dort kein Platz ist, steht er an der Stirnwand des Tiefbetts.
-    const tank: Vec3 =
-      config.body === 'lowbed'
-        ? [onDeck!.x + 0.14, onDeck!.y + 0.16, 0]
-        : config.body === 'longload'
-          ? [rear.x1 - 0.16, rear.yBottom - 0.14, 0]
-          : [(frontX + rearX) / 2, side.yBottom - 0.14, 0];
-    rod('chassis', 'Bremse', 'Druckluftbehälter', 0.13, Math.min(0.7, side.crossW - 0.2), 'z', tank, { look: 'steel', ...bought(14, 'Stahl') });
-    box('chassis', 'Bremse', 'Kupplungskopf Vorrat', [0.04, 0.06, 0.06], [frontEnd + 0.014, connectorY, 0.32], { look: 'lampRed', ...bought(0.5, 'Aluminium') });
-    box('chassis', 'Bremse', 'Kupplungskopf Bremse', [0.04, 0.06, 0.06], [frontEnd + 0.014, connectorY, 0.2], { look: 'yellow', ...bought(0.5, 'Aluminium') });
+    const tankLength = Math.min(0.7, side.crossW - 0.2);
+    let tank: Vec3;
+    if (config.body === 'lowbed') {
+      // Unter dem Tiefbett ist kein Platz: der Behälter liegt in einem Sattel an dessen Stirnwand.
+      const x = onDeck!.x + 0.14;
+      box('chassis', 'Bremse', 'Behälterhalter', [0.3, 0.02, Math.max(tankLength, 0.4 * side.width + 0.1)], [x, onDeck!.y + 0.01, 0], { look: 'galvanized' });
+      tank = [x, onDeck!.y + 0.02 + 0.13, 0];
+    } else {
+      // Der Behälter hängt an einem Halter, der unter die Längsträger geschraubt ist.
+      const s = config.body === 'longload' ? rear : side;
+      const x = config.body === 'longload' ? rear.x1 - 0.16 : (frontX + rearX) / 2;
+      box('chassis', 'Bremse', 'Behälterhalter', [0.3, 0.02, 0.4 * s.width + 0.09], [x, s.yBottom + 0.01, 0], { look: 'galvanized' });
+      tank = [x, s.yBottom - 0.13, 0];
+    }
+    rod('chassis', 'Bremse', 'Druckluftbehälter', 0.13, tankLength, 'z', tank, { look: 'steel', ...bought(14, 'Stahl') });
+    box('chassis', 'Bremse', 'Kupplungskopf Vorrat', [0.04, 0.06, 0.06], [frontEnd + 0.02, connectorY, 0.32], { look: 'lampRed', ...bought(0.5, 'Aluminium') });
+    box('chassis', 'Bremse', 'Kupplungskopf Bremse', [0.04, 0.06, 0.06], [frontEnd + 0.02, connectorY, 0.2], { look: 'yellow', ...bought(0.5, 'Aluminium') });
   } else if (config.brake === 'hydraulic') {
     rod('chassis', 'Bremse', 'Hydraulikanschluss', 0.018, 0.06, 'x', [frontEnd + 0.03, connectorY, 0.26], { look: 'galvanized', ...bought(0.4, 'Stahl verzinkt') });
   } else if (config.brake === 'electric') {
-    box('chassis', 'Bremse', 'Anschlussdose Bremse', [0.05, 0.09, 0.09], [frontEnd + 0.02, connectorY, 0.26], { look: 'steel', ...bought(0.6, 'Kunststoff') });
+    box('chassis', 'Bremse', 'Anschlussdose Bremse', [0.05, 0.09, 0.09], [frontEnd + 0.025, connectorY, 0.26], { look: 'steel', ...bought(0.6, 'Kunststoff') });
   }
   if (config.parkingBrake) {
     const x = Math.max(side.x0 + 0.2, Math.min(side.x1 - 0.3, rearX + 1.2));
@@ -786,12 +826,12 @@ export function trailerParts(config: TrailerConfig, d: Derived): TrailerParts {
   }
 
   // ── Ausstattung ──────────────────────────────────────────────────────────
-  const rearEnd = -L / 2 - 0.012;
+  const rearEnd = -L / 2;
   if (config.rearCoupling === 'pin') {
     const y = rear.yBottom + 0.05;
-    box('chassis', 'Ausstattung', 'Steckbolzenkupplung', [0.16, 0.025, 0.12], [rearEnd - 0.07, y + 0.045, 0], { look: 'steel', ...bought(9, 'Stahl') });
-    box('chassis', 'Ausstattung', 'Kupplungsmaul', [0.16, 0.025, 0.12], [rearEnd - 0.07, y - 0.045, 0], { look: 'steel', ...DETAIL });
-    rod('chassis', 'Ausstattung', 'Steckbolzen', 0.016, 0.17, 'y', [rearEnd - 0.1, y + 0.01, 0], { look: 'galvanized', ...DETAIL });
+    box('chassis', 'Ausstattung', 'Steckbolzenkupplung', [0.16, 0.025, 0.12], [rearEnd - 0.08, y + 0.045, 0], { look: 'steel', ...bought(9, 'Stahl') });
+    box('chassis', 'Ausstattung', 'Kupplungsmaul', [0.16, 0.025, 0.12], [rearEnd - 0.08, y - 0.045, 0], { look: 'steel', ...DETAIL });
+    rod('chassis', 'Ausstattung', 'Steckbolzen', 0.016, 0.17, 'y', [rearEnd - 0.11, y + 0.01, 0], { look: 'galvanized', ...DETAIL });
   } else if (config.rearCoupling === 'automatic') {
     const y = rear.yBottom + 0.07;
     box('chassis', 'Ausstattung', 'Automatische Anhängerkupplung', [0.2, 0.2, 0.18], [rearEnd - 0.1, y, 0], { look: 'steel', ...bought(28, 'Stahlguss') });
@@ -813,7 +853,7 @@ export function trailerParts(config: TrailerConfig, d: Derived): TrailerParts {
   const lampH = Math.min(0.1, rear.webH * 0.7);
   if (config.lighting === 'internal') {
     for (const s of [1, -1]) {
-      box('chassis', 'Ausstattung', 'Rückleuchte', [0.025, lampH, 0.14], [rearEnd - 0.012, rear.webY, s * (rear.width / 2 - 0.3)], { look: 'lampRed', ...bought(0.4, 'Kunststoff') });
+      box('chassis', 'Ausstattung', 'Rückleuchte', [0.025, lampH, 0.14], [rearEnd - 0.0125, rear.webY, s * (rear.width / 2 - 0.3)], { look: 'lampRed', ...bought(0.4, 'Kunststoff') });
     }
   } else if (config.lighting === 'stvzo') {
     for (const s of [1, -1]) {
@@ -822,10 +862,10 @@ export function trailerParts(config: TrailerConfig, d: Derived): TrailerParts {
       box('chassis', 'Ausstattung', 'Begrenzungsleuchte vorn', [0.02, 0.05, 0.08], [frontEnd + 0.01, front.webY, s * (W / 2 - 0.12)], { look: 'lampWhite', ...bought(0.2, 'Kunststoff') });
       const markers = Math.max(2, Math.ceil(side.length / 3));
       for (let i = 0; i < markers; i++) {
-        box('chassis', 'Ausstattung', 'Seitenmarkierungsleuchte', [0.1, 0.035, 0.02], [side.x0 + ((i + 0.5) * side.length) / markers + 0.12, side.yBottom + 0.04, s * (side.width / 2 - 0.012)], { look: 'lampAmber', ...bought(0.15, 'Kunststoff') });
+        box('chassis', 'Ausstattung', 'Seitenmarkierungsleuchte', [0.1, 0.035, 0.02], [side.x0 + ((i + 0.5) * side.length) / markers + 0.12, side.yBottom + 0.0315, s * (side.width / 2 - 0.012)], { look: 'lampAmber', ...bought(0.15, 'Kunststoff') });
       }
     }
-    box('chassis', 'Ausstattung', 'Kennzeichenhalter', [0.006, Math.min(0.12, rear.webH), 0.53], [rearEnd - 0.004, rear.webY, 0], { look: 'lampWhite', ...bought(0.5, 'Kunststoff') });
+    box('chassis', 'Ausstattung', 'Kennzeichenhalter', [0.006, Math.min(0.12, rear.webH), 0.53], [rearEnd - 0.003, rear.webY, 0], { look: 'lampWhite', ...bought(0.5, 'Kunststoff') });
   }
 
   if (config.chocks !== 'none') {
@@ -839,8 +879,9 @@ export function trailerParts(config: TrailerConfig, d: Derived): TrailerParts {
         box('chassis', 'Ausstattung', 'Keilhalter', [length + 0.04, 0.01, 0.18], [onDeck.x, onDeck.y + 0.005, s * onDeck.z], { look: 'galvanized', ...bought(1.2, 'Stahl verzinkt') });
       } else {
         const x = rearX + rearGroup / 2 + 0.45;
-        box('chassis', 'Ausstattung', name, [length, 0.15, 0.16], [x, side.yBottom - 0.085, s * (W / 2 - 0.2)], { look: 'yellow', ...bought(double ? 4.8 : 3.4, 'Kunststoff') });
-        box('chassis', 'Ausstattung', 'Keilhalter', [length + 0.04, 0.01, 0.18], [x, side.yBottom - 0.005, s * (W / 2 - 0.2)], { look: 'galvanized', ...bought(1.2, 'Stahl verzinkt') });
+        // Der Halter ist unter den Untergurt des Außenträgers geschraubt.
+        box('chassis', 'Ausstattung', name, [length, 0.15, 0.16], [x, side.yBottom - 0.085, s * (side.width / 2 - 0.09)], { look: 'yellow', ...bought(double ? 4.8 : 3.4, 'Kunststoff') });
+        box('chassis', 'Ausstattung', 'Keilhalter', [length + 0.04, 0.01, 0.18], [x, side.yBottom - 0.005, s * (side.width / 2 - 0.09)], { look: 'galvanized', ...bought(1.2, 'Stahl verzinkt') });
       }
     }
   }

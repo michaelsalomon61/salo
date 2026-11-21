@@ -46,7 +46,9 @@ npm install
 npm run dev
 ```
 
-`npm run build` erzeugt die statische Seite in `dist/`, `npm test` prüft das Regelwerk.
+`npm run build` erzeugt die statische Seite in `dist/`, `npm test` prüft Regelwerk, Stückliste, Preise,
+Übersetzungen und den Zusammenhalt des Modells: Für rund 30 Konfigurationen werden alle Bauteile als Körper
+aufgebaut, und jedes muss über Berührungen am Rahmen hängen (`src/cad/connectivity.test.ts`).
 
 ## Aufbau
 
