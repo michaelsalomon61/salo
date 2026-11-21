@@ -24,6 +24,13 @@ export const OPTIONS = {
     { id: 'point', name: 'Punktlast' },
     { id: 'custom', name: 'Individuell' },
   ],
+  steering: [
+    { id: 'turntable', name: 'Drehschemel' },
+    { id: 'doubleTurntable', name: 'Doppel-Drehschemel' },
+    { id: 'ackermann2', name: '2-Rad-Achsschenkel' },
+    { id: 'ackermann4', name: '4-Rad-Achsschenkel' },
+    { id: 'allWheel', name: 'Allrad (Pendelachsen)' },
+  ],
   brake: [
     { id: 'none', name: 'Ungebremst' },
     { id: 'overrun', name: 'Auflaufbremse' },
@@ -99,6 +106,7 @@ type OptionId<K extends keyof typeof OPTIONS> = (typeof OPTIONS)[K][number]['id'
 export type Site = OptionId<'site'>;
 export type Ground = OptionId<'ground'>;
 export type LoadType = OptionId<'loadType'>;
+export type Steering = OptionId<'steering'>;
 export type Brake = OptionId<'brake'>;
 export type Tyre = OptionId<'tyre'>;
 export type Suspension = OptionId<'suspension'>;
@@ -148,6 +156,7 @@ export interface TrailerConfig {
   showLoad: boolean;
 
   // Fahrwerk
+  steering: Steering;
   brake: Brake;
   parkingBrake: boolean;
   tyre: Tyre;
@@ -238,6 +247,7 @@ export const DEFAULT_CONFIG: TrailerConfig = {
   loadNote: '',
   showLoad: false,
 
+  steering: 'turntable',
   brake: 'none',
   parkingBrake: false,
   tyre: 'solid',
@@ -273,6 +283,19 @@ export const DEFAULT_CONFIG: TrailerConfig = {
 export const MAX_AXLE_LOAD_T = 12;
 /** Bis zu dieser Achslast genügt eine Starrachse mit 2 Rädern. */
 export const RIGID_AXLE_LOAD_T = 5;
+
+/**
+ * Lenkungsarten: Vorder- und Hinterachsen sitzen entweder auf einem Drehschemel
+ * ('bogie'), lenken je Rad bzw. Pendelachse um einen eigenen Zapfen ('knuckle')
+ * oder sind starr ('fixed'). maxDeg begrenzt den Lenkeinschlag.
+ */
+export const STEERING: Record<Steering, { front: 'bogie' | 'knuckle'; rear: 'bogie' | 'knuckle' | 'fixed'; maxDeg: number }> = {
+  turntable: { front: 'bogie', rear: 'fixed', maxDeg: 60 },
+  doubleTurntable: { front: 'bogie', rear: 'bogie', maxDeg: 35 },
+  ackermann2: { front: 'knuckle', rear: 'fixed', maxDeg: 40 },
+  ackermann4: { front: 'knuckle', rear: 'knuckle', maxDeg: 35 },
+  allWheel: { front: 'knuckle', rear: 'knuckle', maxDeg: 35 },
+};
 
 /** Eigenschaften der Bereifungsarten. */
 export const TYRES: Record<
@@ -382,7 +405,8 @@ export const hasBoardDeck = (deck: DeckMaterial) => deck === 'pine' || deck === 
 export function computeDerived(c: TrailerConfig): Derived {
   const areaM2 = (c.lengthMm / 1000) * (c.widthMm / 1000);
   const axleLoadT = c.payloadT / c.axles;
-  const axleType = axleLoadT > RIGID_AXLE_LOAD_T ? 'pendel' : 'starr';
+  // Die Allradlenkung setzt Pendelachsen voraus.
+  const axleType = axleLoadT > RIGID_AXLE_LOAD_T || c.steering === 'allWheel' ? 'pendel' : 'starr';
   const wheelsPerAxle = axleType === 'pendel' ? 4 : 2;
   const wheelCount = wheelsPerAxle * c.axles;
 
@@ -428,9 +452,11 @@ export function computeDerived(c: TrailerConfig): Derived {
     LIMITS.widthMm.min,
     LIMITS.widthMm.max,
   );
-  // Rad + Drehschemel und Achsträger (160 mm) + Federung + Rahmen.
+  // Rad + Drehschemel (160 mm) bzw. Lenkzapfen (60 mm) + Federung + Rahmen.
+  const mode = STEERING[c.steering];
+  const underFrameMm = mode.front === 'bogie' || mode.rear === 'bogie' ? 160 : 60;
   const minDeckHeightMm = clamp(
-    ceilTo(wheelDiameterMm + frameHeightMm + 160 + springHeightMm, LIMITS.deckHeightMm.step),
+    ceilTo(wheelDiameterMm + frameHeightMm + underFrameMm + springHeightMm, LIMITS.deckHeightMm.step),
     LIMITS.deckHeightMm.min,
     LIMITS.deckHeightMm.max,
   );
@@ -473,7 +499,7 @@ export function resolve(requested: TrailerConfig): Resolved {
     lengthMm: limit('lengthMm', requested.lengthMm),
     widthMm: limit('widthMm', requested.widthMm),
     deckHeightMm: limit('deckHeightMm', requested.deckHeightMm),
-    steeringDeg: limit('steeringDeg', requested.steeringDeg),
+    steeringDeg: clamp(Math.round(requested.steeringDeg), -STEERING[requested.steering].maxDeg, STEERING[requested.steering].maxDeg),
     speedKmh: limit('speedKmh', requested.speedKmh),
     slopePct: limit('slopePct', requested.slopePct),
     obstacleMm: limit('obstacleMm', requested.obstacleMm),

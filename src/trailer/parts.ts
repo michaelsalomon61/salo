@@ -8,6 +8,7 @@
  * Koordinaten: x in Fahrtrichtung (Deichsel bei +x), y nach oben, z nach rechts.
  */
 import {
+  STEERING,
   axleLayout,
   hasBoardDeck,
   optionName,
@@ -48,7 +49,7 @@ export interface FrameDef {
   angle: number;
 }
 
-export const GROUPS = ['Ladefläche', 'Rahmen', 'Bordwände', 'Fahrwerk', 'Bremse', 'Drehschemel', 'Deichsel', 'Ausstattung'] as const;
+export const GROUPS = ['Ladefläche', 'Rahmen', 'Bordwände', 'Fahrwerk', 'Lenkung', 'Bremse', 'Deichsel', 'Ausstattung'] as const;
 export type Group = (typeof GROUPS)[number];
 
 interface PartBase {
@@ -331,6 +332,25 @@ export function trailerParts(config: TrailerConfig, d: Derived): TrailerParts {
     }
   }
 
+  // ── Lenkgeometrie ────────────────────────────────────────────────────────
+  const mode = STEERING[config.steering];
+  const frontX = layout.frontCenterMm * MM;
+  const rearX = layout.rearCenterMm * MM;
+  // Alle gelenkten Räder rollen um einen gemeinsamen Punkt. Er liegt auf Höhe der
+  // Hinterachsen, wenn nur vorn gelenkt wird, sonst mittig zwischen den Achsgruppen.
+  const turnX = mode.rear === 'fixed' ? rearX : (frontX + rearX) / 2;
+  const steerRad = (config.steeringDeg * Math.PI) / 180;
+  let turnRadius = steerRad === 0 ? Infinity : (frontX - turnX) / Math.tan(steerRad);
+  // Einzeln gelenkte Räder brauchen einen Drehpunkt außerhalb der Spur.
+  if (mode.front === 'knuckle' && Math.abs(turnRadius) < W / 2 + 0.3) turnRadius = Math.sign(turnRadius) * (W / 2 + 0.3);
+  /**
+   * Drehwinkel eines gelenkten Teils an der Stelle (x, z) um die Hochachse.
+   * Rechts ist +z; ein Einschlag nach rechts dreht daher um -y.
+   */
+  const steerAngleAt = (x: number, z: number) =>
+    Number.isFinite(turnRadius) ? -Math.atan((x - turnX) / (turnRadius - z)) : 0;
+  let knuckles = 0;
+
   // ── Räder, Achsen, Federung, Bremsen ─────────────────────────────────────
   const axleR = Math.max(0.03, R * 0.16);
   const tyreName = optionName('tyre', config.tyre);
@@ -364,23 +384,27 @@ export function trailerParts(config: TrailerConfig, d: Derived): TrailerParts {
 
   /**
    * Eine Achslinie. mountY ist die Unterkante des Trägers, an dem sie hängt;
-   * eine Federung sitzt zwischen Träger und Achshalter.
+   * eine Federung sitzt zwischen Träger und Achshalter. Bei steered lenkt jede
+   * Pendelachse bzw. jedes Rad um einen eigenen Zapfen (nur am festen Aufbau).
    */
-  const axleLine = (frame: string, x: number, mountY: number, braked: boolean) => {
-    const top = mountY - springH;
-    const hangerH = top - (R - 0.06);
-    const hangerY = top - hangerH / 2;
-    const spring = (z: number) => {
+  const axleLine = (frame: string, x: number, mountY: number, braked: boolean, steered = false) => {
+    // Eigenes Bezugssystem für ein gelenktes Teil, mit Ursprung auf dem Boden unter dem Zapfen.
+    const knuckle = (z: number) => {
+      const name = `knuckle${knuckles++}`;
+      frames[name] = { parent: frame, origin: [x, 0, z], axis: 'y', angle: steerAngleAt(x, z) };
+      return name;
+    };
+    const spring = (f: string, fx: number, z: number, y: number) => {
       if (config.suspension === 'rubber') {
-        box(frame, 'Fahrwerk', 'Gummifederelement', [0.2, springH, 0.12], [x, mountY - springH / 2, z], { look: 'rubber', ...bought(4, 'Gummi-Metall') });
+        box(f, 'Fahrwerk', 'Gummifederelement', [0.2, springH, 0.12], [fx, y - springH / 2, z], { look: 'rubber', ...bought(4, 'Gummi-Metall') });
       } else if (config.suspension === 'leaf') {
         const length = Math.min(0.8, d.axleSpacingMm * MM - 0.04);
-        box(frame, 'Fahrwerk', 'Blattfederpaket', [length, 0.05, 0.07], [x, mountY - springH + 0.025, z], { look: 'steel', ...bought(Math.round(length * 28), 'Federstahl') });
+        box(f, 'Fahrwerk', 'Blattfederpaket', [length, 0.05, 0.07], [fx, y - springH + 0.025, z], { look: 'steel', ...bought(Math.round(length * 28), 'Federstahl') });
         for (const end of [1, -1]) {
-          box(frame, 'Fahrwerk', 'Federbock', [0.06, springH - 0.03, 0.09], [x + end * (length / 2 - 0.03), mountY - (springH - 0.03) / 2, z]);
+          box(f, 'Fahrwerk', 'Federbock', [0.06, springH - 0.03, 0.09], [fx + end * (length / 2 - 0.03), y - (springH - 0.03) / 2, z]);
         }
       } else if (config.suspension === 'air') {
-        rod(frame, 'Fahrwerk', 'Luftfederbalg', 0.1, springH, 'y', [x, mountY - springH / 2, z], { look: 'rubber', ...bought(6, 'Gummi / Stahl') });
+        rod(f, 'Fahrwerk', 'Luftfederbalg', 0.1, springH, 'y', [fx, y - springH / 2, z], { look: 'rubber', ...bought(6, 'Gummi / Stahl') });
       }
     };
 
@@ -388,63 +412,109 @@ export function trailerParts(config: TrailerConfig, d: Derived): TrailerParts {
       for (const side of [1, -1]) {
         // Pendelachse: zwei Räder, mittig am Träger pendelnd gelagert.
         const zc = side * (W / 2 - 0.03 - wheelW - 0.05);
-        wheel(frame, x, zc + (wheelW / 2 + 0.05));
-        wheel(frame, x, zc - (wheelW / 2 + 0.05));
-        rod(frame, 'Fahrwerk', 'Pendelachse Achskörper', axleR, 2 * wheelW + 0.12, 'z', [x, R, zc]);
-        box(frame, 'Fahrwerk', 'Pendelbock', [0.17, hangerH, 0.08], [x, hangerY, zc], { wall: 0.01 });
         box(frame, 'Fahrwerk', 'Anschraubplatte', [0.3, 0.02, 0.22], [x, mountY - 0.01, zc]);
-        rod(frame, 'Fahrwerk', 'Pendelbolzen', 0.028, 0.24, 'x', [x, top - 0.07, zc]);
-        spring(zc);
-        if (braked) brakeUnit(frame, x, zc - side * (wheelW + 0.08), -side);
+        // Gelenkt dreht die ganze Pendelachse auf einem kleinen Drehkranz unter der Platte.
+        const f = steered ? knuckle(zc) : frame;
+        const fx = steered ? 0 : x;
+        const fz = steered ? 0 : zc;
+        const under = steered ? mountY - 0.05 : mountY;
+        if (steered) rod(f, 'Lenkung', 'Lenkdrehkranz', 0.11, 0.03, 'y', [0, mountY - 0.035, 0], { innerRadius: 0.05 });
+        const top = under - springH;
+        const hangerH = top - (R - 0.06);
+        wheel(f, fx, fz + (wheelW / 2 + 0.05));
+        wheel(f, fx, fz - (wheelW / 2 + 0.05));
+        rod(f, 'Fahrwerk', 'Pendelachse Achskörper', axleR, 2 * wheelW + 0.12, 'z', [fx, R, fz]);
+        box(f, 'Fahrwerk', 'Pendelbock', [0.17, hangerH, 0.08], [fx, top - hangerH / 2, fz], { wall: 0.01 });
+        rod(f, 'Fahrwerk', 'Pendelbolzen', 0.028, 0.24, 'x', [fx, top - 0.07, fz]);
+        spring(f, fx, fz, under);
+        if (braked) brakeUnit(f, fx, fz - side * (wheelW + 0.08), -side);
       }
     } else {
       const zWheel = W / 2 - 0.03 - wheelW / 2;
-      wheel(frame, x, zWheel);
-      wheel(frame, x, -zWheel);
-      rod(frame, 'Fahrwerk', 'Starrachse Achskörper', axleR, 2 * zWheel + wheelW * 0.2, 'z', [x, R, 0]);
+      const top = mountY - springH;
+      const hangerH = top - (R - 0.06);
+      const inner = zWheel - wheelW / 2;
+      rod(frame, 'Fahrwerk', 'Starrachse Achskörper', axleR, steered ? 2 * (inner - 0.115) : 2 * zWheel + wheelW * 0.2, 'z', [x, R, 0]);
       for (const side of [1, -1]) {
-        const zHanger = side * (zWheel - wheelW / 2 - 0.14);
-        box(frame, 'Fahrwerk', 'Achshalter', [0.15, hangerH, 0.07], [x, hangerY, zHanger], { wall: 0.008 });
-        spring(zHanger);
-        if (braked) brakeUnit(frame, x, side * (zWheel - wheelW / 2 - 0.03), -side);
+        const zHanger = side * (inner - 0.16);
+        box(frame, 'Fahrwerk', 'Achshalter', [0.15, hangerH, 0.07], [x, top - hangerH / 2, zHanger], { wall: 0.008 });
+        spring(frame, x, zHanger, mountY);
+        // Gelenkt schwenkt nur das Rad am Achsschenkel, die Achse bleibt fest.
+        const f = steered ? knuckle(side * zWheel) : frame;
+        const fx = steered ? 0 : x;
+        const fz = steered ? 0 : side * zWheel;
+        wheel(f, fx, fz);
+        if (steered) box(f, 'Lenkung', 'Achsschenkel', [0.1, 0.14, 0.06], [0, R, -side * (wheelW / 2 + 0.085)], { look: 'steel' });
+        if (braked) brakeUnit(f, fx, fz - side * (wheelW / 2 + 0.03), -side);
       }
     }
+  };
+
+  /** Spurstange, die die Achsschenkel bzw. Pendelachsen einer gelenkten Achslinie verbindet. */
+  const tieRod = (x: number, mountY: number) => {
+    const span = d.axleType === 'pendel' ? 2 * (W / 2 - 0.03 - wheelW - 0.05) : 2 * (W / 2 - 0.03 - wheelW - 0.1);
+    rod('chassis', 'Lenkung', 'Spurstange', 0.016, span, 'z', [x - 0.2, mountY - 0.09, 0], { look: 'galvanized' });
   };
 
   // Die Auflaufbremse wirkt über die Deichsel auf die Vorderachsen, alle anderen auf die Hinterachsen.
   const frontBraked = config.brake === 'overrun';
   const rearBraked = config.parkingBrake || (config.brake !== 'none' && config.brake !== 'overrun');
 
-  // Hinterachsen hängen an Querträgern direkt unter dem Rahmen.
-  for (const xMm of layout.rearAxlesMm) {
-    box('chassis', 'Rahmen', 'Achsquerträger', [0.2, 0.08, crossW], [xMm * MM, yBottom + 0.04, 0], { wall: 0.01 });
-    axleLine('chassis', xMm * MM, yBottom, rearBraked);
-  }
-
-  // ── Drehschemel mit Vorderachsen ─────────────────────────────────────────
-  const frontX = layout.frontCenterMm * MM;
-  const rearX = layout.rearCenterMm * MM;
-  const steer = (-config.steeringDeg * Math.PI) / 180;
-  // Rechts ist +z; ein Einschlag nach rechts dreht den Drehschemel daher um -y.
-  frames.bogieFront = { parent: 'chassis', origin: [frontX, 0, 0], axis: 'y', angle: steer };
-
+  // ── Achsgruppen ──────────────────────────────────────────────────────────
   const subH = 0.08;
   const subY = yBottom - 0.05 - subH / 2;
-  const subLen = (d.frontAxles - 1) * d.axleSpacingMm * MM + 0.5;
   const subW = W - 0.3;
-  const ringR = Math.min(W / 2 - 0.12, 0.6);
-  rod('bogieFront', 'Drehschemel', `Kugeldrehkranz Ø ${Math.round(ringR * 2000)}`, ringR, 0.05, 'y', [0, yBottom - 0.025, 0], {
-    innerRadius: ringR - 0.09,
-  });
-  box('bogieFront', 'Drehschemel', 'Drehschemelrahmen', [subLen, subH, subW], [0, subY, 0], { wall: 0.012 });
-  for (const xMm of layout.frontAxlesMm) {
-    axleLine('bogieFront', xMm * MM - frontX, subY - subH / 2, frontBraked);
+  const tongueW = Math.min(mode.front === 'bogie' ? 0.7 : 0.5, subW);
+
+  /** Achsgruppe auf einem Drehschemel; liefert die halbe Länge des Schemelrahmens. */
+  const bogie = (name: string, centerX: number, linesMm: number[], braked: boolean) => {
+    frames[name] = { parent: 'chassis', origin: [centerX, 0, 0], axis: 'y', angle: steerAngleAt(centerX, 0) };
+    const subLen = (linesMm.length - 1) * d.axleSpacingMm * MM + 0.5;
+    const ringR = Math.min(W / 2 - 0.12, 0.6);
+    rod(name, 'Lenkung', `Kugeldrehkranz Ø ${Math.round(ringR * 2000)}`, ringR, 0.05, 'y', [0, yBottom - 0.025, 0], { innerRadius: ringR - 0.09 });
+    box(name, 'Lenkung', 'Drehschemelrahmen', [subLen, subH, subW], [0, subY, 0], { wall: 0.012 });
+    for (const xMm of linesMm) axleLine(name, xMm * MM - centerX, subY - subH / 2, braked);
+    return subLen / 2;
+  };
+  /** Achsgruppe direkt unter dem Rahmen, starr oder mit einzeln gelenkten Rädern. */
+  const underFrame = (linesMm: number[], braked: boolean, steered: boolean) => {
+    for (const xMm of linesMm) {
+      box('chassis', 'Rahmen', 'Achsquerträger', [0.2, 0.08, crossW], [xMm * MM, yBottom + 0.04, 0], { wall: 0.01 });
+      axleLine('chassis', xMm * MM, yBottom, braked, steered);
+      if (steered) tieRod(xMm * MM, yBottom);
+    }
+  };
+
+  if (mode.rear === 'bogie') {
+    bogie('bogieRear', rearX, layout.rearAxlesMm, rearBraked);
+    // Die Koppelstange lenkt den hinteren Drehschemel gegenläufig mit.
+    rod('chassis', 'Lenkung', 'Koppelstange', 0.02, frontX - rearX, 'x', [(frontX + rearX) / 2, subY, 0.25], { look: 'galvanized' });
+  } else {
+    underFrame(layout.rearAxlesMm, rearBraked, mode.rear === 'knuckle');
   }
 
-  // Die Aufnahme reicht bis vor die Ladefläche, damit die Deichsel frei hochklappen kann.
-  const hingeX = L / 2 + 0.12 - frontX;
-  const tongueW = Math.min(0.7, subW);
-  box('bogieFront', 'Drehschemel', 'Deichselaufnahme', [hingeX - subLen / 2 + 0.02, subH, tongueW], [(hingeX + subLen / 2) / 2, subY, 0], { wall: 0.01 });
+  // Die Deichsel hängt an einer Aufnahme, die bis vor die Ladefläche reicht,
+  // damit sie frei hochklappen kann: am Drehschemel oder an einem eigenen Lenkbock.
+  let drawbarParent: string;
+  let hingeX: number;
+  if (mode.front === 'bogie') {
+    const half = bogie('bogieFront', frontX, layout.frontAxlesMm, frontBraked);
+    drawbarParent = 'bogieFront';
+    hingeX = L / 2 + 0.12 - frontX;
+    box('bogieFront', 'Lenkung', 'Deichselaufnahme', [hingeX - half + 0.02, subH, tongueW], [(hingeX + half) / 2, subY, 0], { wall: 0.01 });
+  } else {
+    underFrame(layout.frontAxlesMm, frontBraked, true);
+    const pivotX = L / 2 - 0.2;
+    frames.tongue = { parent: 'chassis', origin: [pivotX, subY, 0], axis: 'y', angle: -steerRad };
+    drawbarParent = 'tongue';
+    hingeX = 0.32;
+    box('chassis', 'Lenkung', 'Lenkbock', [0.34, 0.05, tongueW], [pivotX, yBottom - 0.025, 0]);
+    rod('tongue', 'Lenkung', 'Lenkbolzen', 0.03, 0.16, 'y', [0, 0, 0]);
+    box('tongue', 'Lenkung', 'Deichselaufnahme', [hingeX + 0.14, subH, tongueW], [hingeX / 2 - 0.05, 0, 0], { wall: 0.01 });
+    // Die Schubstange überträgt den Deichseleinschlag auf die Spurstange der ersten Achse.
+    const firstAxle = Math.max(...layout.frontAxlesMm) * MM;
+    rod('chassis', 'Lenkung', 'Lenkschubstange', 0.016, pivotX - firstAxle + 0.2, 'x', [(pivotX + firstAxle - 0.2) / 2, yBottom - 0.09, 0.12], { look: 'galvanized' });
+  }
 
   // ── Deichsel ─────────────────────────────────────────────────────────────
   const drawbarLength = Math.min(1.1 + 0.012 * config.payloadT, 1.7);
@@ -454,7 +524,7 @@ export function trailerParts(config: TrailerConfig, d: Derived): TrailerParts {
     config.couplingHeightMm === null
       ? 0
       : Math.asin(Math.max(-0.45, Math.min(0.45, (config.couplingHeightMm * MM - subY) / tip)));
-  frames.drawbar = { parent: 'bogieFront', origin: [hingeX, subY, 0], axis: 'z', angle: config.drawbarUp ? DRAWBAR_UP : rest };
+  frames.drawbar = { parent: drawbarParent, origin: [hingeX, drawbarParent === 'tongue' ? 0 : subY, 0], axis: 'z', angle: config.drawbarUp ? DRAWBAR_UP : rest };
 
   const z0 = tongueW / 2 - 0.05;
   const armEndX = drawbarLength * 0.8;

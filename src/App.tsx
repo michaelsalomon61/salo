@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { advise, performance } from './trailer/advice';
 import { buildBom } from './trailer/bom';
-import { COLORS, DEFAULT_CONFIG, LIMITS, OPTIONS, hasBoardDeck, optionName, resolve, type TrailerConfig } from './trailer/config';
+import { COLORS, DEFAULT_CONFIG, LIMITS, OPTIONS, STEERING, hasBoardDeck, optionName, resolve, type TrailerConfig } from './trailer/config';
 import { trailerParts } from './trailer/parts';
 import { describeConfig } from './trailer/summary';
 import { BomDialog } from './ui/BomDialog';
@@ -139,6 +139,7 @@ export function App() {
           </Section>
 
           <Section title="Fahrwerk">
+            <Chips id="steering-type" label="Lenkung" value={config.steering} options={OPTIONS.steering} onChange={(v) => set('steering', v)} />
             <Chips id="tyre" label="Bereifung" value={config.tyre} options={OPTIONS.tyre} onChange={(v) => set('tyre', v)} />
             <Switch id="non-marking" label="Spurfreie Bereifung" checked={config.nonMarking} onChange={(v) => set('nonMarking', v)} />
             <Chips id="suspension" label="Federung" value={config.suspension} options={OPTIONS.suspension} onChange={(v) => set('suspension', v)} />
@@ -170,6 +171,8 @@ export function App() {
               value={config.steeringDeg}
               display={steeringText(config.steeringDeg)}
               {...LIMITS.steeringDeg}
+              min={-STEERING[config.steering].maxDeg}
+              max={STEERING[config.steering].maxDeg}
               centered
               disabled={config.drawbarUp}
               note={adjustments.steeringDeg}

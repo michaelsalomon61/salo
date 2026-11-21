@@ -57,7 +57,7 @@ export function describeConfig(c: TrailerConfig, d: Derived, tareKg: number, pie
     {
       title: 'Fahrwerk',
       items: [
-        ['Lenkung', 'Drehschemellenkung'],
+        ['Lenkung', optionName('steering', c.steering)],
         ['Bereifung', `${optionName('tyre', c.tyre)}${c.nonMarking ? ', spurfrei' : ''}`],
         ['Räder', `${d.wheelCount} × Ø ${d.wheelDiameterMm} mm`],
         ['Federung', optionName('suspension', c.suspension)],

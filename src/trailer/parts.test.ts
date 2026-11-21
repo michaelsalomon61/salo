@@ -82,6 +82,62 @@ describe('Bauteilbeschreibung', () => {
   });
 });
 
+describe('Lenkungsarten', () => {
+  const steeringIds = OPTIONS.steering.map((o) => o.id);
+
+  it('baut jede Lenkung für alle Achszahlen und Achsbauarten, geradeaus und eingeschlagen', () => {
+    for (const steering of steeringIds) {
+      for (const [payloadT, axles] of [[4, 2], [8, 2], [24, 2], [30, 3], [48, 4]] as const) {
+        for (const steeringDeg of [0, 25, -60]) {
+          const { description } = check({ steering, payloadT, axles, steeringDeg, brake: 'air', suspension: 'rubber' });
+          const seen = new Set<string>();
+          for (const [name, frame] of Object.entries(description.frames)) {
+            // Übergeordnete Bezugssysteme müssen vor ihren Kindern stehen.
+            if (frame.parent) expect(seen.has(frame.parent), `${name} nach ${frame.parent}`).toBe(true);
+            expect(Number.isFinite(frame.angle), name).toBe(true);
+            expect(Math.abs(frame.angle)).toBeLessThan(Math.PI / 2);
+            seen.add(name);
+          }
+        }
+      }
+    }
+  });
+
+  it('dreht beim Doppel-Drehschemel den hinteren Schemel gegenläufig', () => {
+    const { frames } = check({ steering: 'doubleTurntable', steeringDeg: 20 }).description;
+    expect(frames.bogieFront.angle).toBeCloseTo((-20 * Math.PI) / 180, 5);
+    expect(frames.bogieRear.angle).toBeCloseTo(-frames.bogieFront.angle, 5);
+  });
+
+  it('schlägt bei der Achsschenkellenkung das kurveninnere Rad stärker ein', () => {
+    const { frames, parts } = check({ steering: 'ackermann2', steeringDeg: 20, payloadT: 8 }).description;
+    const knuckles = Object.entries(frames).filter(([name]) => name.startsWith('knuckle'));
+    // Zwei Vorderräder gelenkt, die Hinterräder starr.
+    expect(knuckles).toHaveLength(2);
+    const right = knuckles.find(([, f]) => f.origin[2] > 0)![1];
+    const left = knuckles.find(([, f]) => f.origin[2] < 0)![1];
+    // Einschlag nach rechts: negatives Vorzeichen, rechts liegt innen.
+    expect(right.angle).toBeLessThan(left.angle);
+    expect(left.angle).toBeLessThan(0);
+    expect(frames.tongue.angle).toBeCloseTo((-20 * Math.PI) / 180, 5);
+    expect(parts.some((p) => p.name === 'Spurstange')).toBe(true);
+    expect(frames.bogieFront).toBeUndefined();
+  });
+
+  it('lenkt bei Allradlenkung alle Pendelachsen, hinten gegenläufig', () => {
+    const { derived, description } = check({ steering: 'allWheel', steeringDeg: 15, payloadT: 8 });
+    expect(derived.axleType).toBe('pendel');
+    const knuckles = Object.values(description.frames).filter((f) => f.origin[1] === 0 && f.parent === 'chassis' && f.axis === 'y' && f.origin[2] !== 0);
+    expect(knuckles).toHaveLength(4);
+    for (const k of knuckles) expect(Math.sign(k.angle)).toBe(k.origin[0] > 0 ? -1 : 1);
+  });
+
+  it('begrenzt den Lenkeinschlag je Lenkungsart', () => {
+    expect(check({ steering: 'turntable', steeringDeg: 60 }).config.steeringDeg).toBe(60);
+    expect(check({ steering: 'ackermann2', steeringDeg: 60 }).config.steeringDeg).toBe(40);
+  });
+});
+
 describe('Hinweise', () => {
   const notes = (o: Partial<TrailerConfig>) => {
     const { config, derived, bom } = check(o);

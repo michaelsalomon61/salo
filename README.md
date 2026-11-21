@@ -3,7 +3,7 @@
 Machbarkeits-Prototyp: ein Konfigurator für Schwerlastanhänger mit Deichsel. Aus Traglast, Achszahl,
 Abmessungen und Ausführung entsteht im Browser ein parametrisches 3D-Modell, das sich frei drehen lässt.
 
-Erfasst werden Grunddaten, Einsatzbedingungen, Last, Fahrwerk (Bereifung, Federung, Bremsen), Ladefläche
+Erfasst werden Grunddaten, Einsatzbedingungen, Last, Fahrwerk (Lenkung, Bereifung, Federung, Bremsen), Ladefläche
 (Belag, Kantenschutz, Bordwände, Verzurrösen), Deichsel und Kupplungen, Beleuchtung, Unterlegkeile,
 Lackierung und Eckdaten des Zugfahrzeugs. Ausstattung erscheint im Modell, in der Stückliste und im
 STEP-Export; Einsatzdaten fließen in Kennwerte und Hinweise ein.
@@ -14,6 +14,10 @@ Aus der fertigen Konfiguration lassen sich drei Ergebnisse erzeugen:
 - **Stückliste**: alle Bauteile mit Menge, Abmessungen, Werkstoff und Gewicht samt Summen, speicherbar als CSV.
 - **STEP-Modell**: jedes Bauteil als benannter Körper, Maße in Millimetern, z nach oben. Lenkung gerade,
   Deichsel waagerecht.
+
+Lenkungsarten: Drehschemel, Doppel-Drehschemel, 2-Rad- und 4-Rad-Achsschenkellenkung sowie Allradlenkung
+mit Pendelachsen. Der Lenkeinschlag lässt sich im Modell verstellen; alle gelenkten Räder rollen dabei um
+einen gemeinsamen Punkt.
 
 Alles läuft im Browser, die Seite braucht keinen Server.
 
