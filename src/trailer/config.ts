@@ -17,6 +17,8 @@ export interface TrailerConfig {
   deck: DeckMaterial;
   colorId: string;
   drawbarUp: boolean;
+  /** Lenkeinschlag des Drehschemels in Grad, negativ = links, positiv = rechts. */
+  steeringDeg: number;
 }
 
 export const LIMITS = {
@@ -25,6 +27,7 @@ export const LIMITS = {
   lengthMm: { min: 2000, max: 12000, step: 100 },
   widthMm: { min: 1200, max: 3000, step: 50 },
   deckHeightMm: { min: 400, max: 1500, step: 10 },
+  steeringDeg: { min: -60, max: 60, step: 1 },
 } as const;
 
 export const COLORS = [
@@ -52,6 +55,7 @@ export const DEFAULT_CONFIG: TrailerConfig = {
   deck: 'steel',
   colorId: 'ral3020',
   drawbarUp: false,
+  steeringDeg: 0,
 };
 
 /** Tragfähigkeit einer Achslinie mit Pendelachsen (4 Räder). */
@@ -78,7 +82,7 @@ export interface Derived {
   minDeckHeightMm: number;
 }
 
-export type AdjustedField = 'axles' | 'lengthMm' | 'widthMm' | 'deckHeightMm';
+export type AdjustedField = 'axles' | 'lengthMm' | 'widthMm' | 'deckHeightMm' | 'steeringDeg';
 
 export interface Resolved {
   config: TrailerConfig;
@@ -203,8 +207,15 @@ export function resolve(requested: TrailerConfig): Resolved {
       LIMITS.deckHeightMm.min,
       LIMITS.deckHeightMm.max,
     ),
+    steeringDeg: clamp(Math.round(requested.steeringDeg), LIMITS.steeringDeg.min, LIMITS.steeringDeg.max),
   };
   const adjustments: Resolved['adjustments'] = {};
+
+  // Eingeschlagen läge das Gelenk unter der Ladefläche, die Deichsel könnte nicht hochklappen.
+  if (c.drawbarUp && c.steeringDeg !== 0) {
+    c.steeringDeg = 0;
+    adjustments.steeringDeg = 'Hochgeklappt steht die Deichsel in Geradeausstellung.';
+  }
 
   const minAxles = minAxlesFor(c.payloadT);
   if (c.axles < minAxles) {

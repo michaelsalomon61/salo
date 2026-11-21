@@ -6,6 +6,8 @@ const MM = 0.001;
 
 export interface TrailerBuild {
   group: THREE.Group;
+  /** Drehschemel mit Vorderachsen und Deichsel, lenkbar um die y-Achse. */
+  bogie: THREE.Group;
   /** Deichsel, drehbar um die lokale z-Achse (0 = waagerecht). */
   drawbar: THREE.Group;
   drawbarLength: number;
@@ -242,6 +244,7 @@ export function buildTrailer(config: TrailerConfig, d: Derived): TrailerBuild {
 
   return {
     group,
+    bogie,
     drawbar,
     drawbarLength: drawbarLength + 0.15,
     dispose: () => disposables.forEach((item) => item.dispose()),

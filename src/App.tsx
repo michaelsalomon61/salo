@@ -13,6 +13,7 @@ import { Viewer } from './viewer/Viewer';
 const nf = new Intl.NumberFormat('de-DE');
 const mm = (v: number) => `${nf.format(v)} mm`;
 const kg = (v: number) => `${nf.format(v)} kg`;
+const steeringText = (deg: number) => (deg === 0 ? 'Geradeaus' : `${Math.abs(deg)}° ${deg < 0 ? 'links' : 'rechts'}`);
 
 export function App() {
   // Gewünschte Werte; das Regelwerk leitet daraus die baubare Konfiguration ab.
@@ -135,6 +136,17 @@ export function App() {
               ))}
             </div>
           </Field>
+          <Slider
+            id="steering"
+            label="Lenkeinschlag"
+            value={config.steeringDeg}
+            display={steeringText(config.steeringDeg)}
+            {...LIMITS.steeringDeg}
+            centered
+            disabled={config.drawbarUp}
+            note={adjustments.steeringDeg}
+            onChange={(v) => set('steeringDeg', v)}
+          />
           <label className="switch-row" htmlFor="drawbar-up">
             <span>Deichsel hochgeklappt</span>
             <input
@@ -200,11 +212,16 @@ interface SliderProps {
   max: number;
   step: number;
   note?: string;
+  /** Füllung von der Mitte aus statt vom linken Rand. */
+  centered?: boolean;
+  disabled?: boolean;
   onChange: (value: number) => void;
 }
 
-function Slider({ id, label, value, display, min, max, step, note, onChange }: SliderProps) {
-  const fill = max > min ? ((value - min) / (max - min)) * 100 : 0;
+function Slider({ id, label, value, display, min, max, step, note, centered, disabled, onChange }: SliderProps) {
+  const position = max > min ? ((value - min) / (max - min)) * 100 : 0;
+  const from = centered ? Math.min(50, position) : 0;
+  const to = centered ? Math.max(50, position) : position;
   return (
     <div className="field">
       <div className="field-head">
@@ -222,7 +239,9 @@ function Slider({ id, label, value, display, min, max, step, note, onChange }: S
         max={max}
         step={step}
         value={value}
-        style={{ '--fill': `${fill}%` } as React.CSSProperties}
+        disabled={disabled}
+        className={centered ? 'centered' : undefined}
+        style={{ '--from': `${from}%`, '--to': `${to}%` } as React.CSSProperties}
         onChange={(e) => onChange(Number(e.target.value))}
       />
       {note && <p className="note">{note}</p>}

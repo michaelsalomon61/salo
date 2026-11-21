@@ -31,6 +31,8 @@ export class TrailerScene {
   private fitDistance = 12;
   private drawbarAngle = 0;
   private drawbarTarget = 0;
+  private steerAngle = 0;
+  private steerTarget = 0;
   private frame = 0;
 
   constructor(private readonly host: HTMLElement) {
@@ -90,6 +92,11 @@ export class TrailerScene {
     this.drawbarTarget = config.drawbarUp ? DRAWBAR_UP : 0;
     if (this.reducedMotion) this.drawbarAngle = this.drawbarTarget;
     this.trailer.drawbar.rotation.z = this.drawbarAngle;
+
+    // Rechts ist +z; ein Einschlag nach rechts dreht den Drehschemel daher um -y.
+    this.steerTarget = -THREE.MathUtils.degToRad(config.steeringDeg);
+    if (this.reducedMotion) this.steerAngle = this.steerTarget;
+    this.trailer.bogie.rotation.y = this.steerAngle;
 
     const L = config.lengthMm * MM;
     const W = config.widthMm * MM;
@@ -154,6 +161,11 @@ export class TrailerScene {
       const delta = this.drawbarTarget - this.drawbarAngle;
       this.drawbarAngle = Math.abs(delta) < 0.002 ? this.drawbarTarget : this.drawbarAngle + delta * 0.14;
       this.trailer.drawbar.rotation.z = this.drawbarAngle;
+    }
+    if (this.trailer && this.steerAngle !== this.steerTarget) {
+      const delta = this.steerTarget - this.steerAngle;
+      this.steerAngle = Math.abs(delta) < 0.002 ? this.steerTarget : this.steerAngle + delta * 0.25;
+      this.trailer.bogie.rotation.y = this.steerAngle;
     }
     this.controls.update();
     this.renderer.render(this.scene, this.camera);

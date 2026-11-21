@@ -277,7 +277,13 @@ input[type='range'] {
 input[type='range']::-webkit-slider-runnable-track {
   height: 4px;
   border-radius: 2px;
-  background: linear-gradient(to right, var(--accent) var(--fill), var(--track) var(--fill));
+  background: linear-gradient(
+    to right,
+    var(--track) var(--from),
+    var(--accent) var(--from),
+    var(--accent) var(--to),
+    var(--track) var(--to)
+  );
 }
 
 input[type='range']::-moz-range-track {
@@ -314,6 +320,15 @@ input[type='range']::-moz-range-thumb {
   box-shadow:
     0 0 0 0.5px rgba(0, 0, 0, 0.12),
     0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+input[type='range'].centered::-moz-range-progress {
+  background: var(--track);
+}
+
+input[type='range']:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 /* Auswahl */

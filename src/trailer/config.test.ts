@@ -29,6 +29,16 @@ describe('resolve', () => {
     expect(r.adjustments.deckHeightMm).toBeDefined();
   });
 
+  it('stellt die Lenkung gerade, solange die Deichsel hochgeklappt ist', () => {
+    const steered = resolve({ ...DEFAULT_CONFIG, steeringDeg: -35 });
+    expect(steered.config.steeringDeg).toBe(-35);
+    expect(steered.adjustments.steeringDeg).toBeUndefined();
+
+    const raised = resolve({ ...DEFAULT_CONFIG, steeringDeg: -35, drawbarUp: true });
+    expect(raised.config.steeringDeg).toBe(0);
+    expect(raised.adjustments.steeringDeg).toBeDefined();
+  });
+
   it('liefert für jede Eingabe eine stabile, baubare Konfiguration', () => {
     for (let payloadT = LIMITS.payloadT.min; payloadT <= LIMITS.payloadT.max; payloadT++) {
       for (let axles = LIMITS.axles.min; axles <= LIMITS.axles.max; axles++) {
