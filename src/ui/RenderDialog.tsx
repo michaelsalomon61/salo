@@ -10,7 +10,7 @@ interface Props {
   derived: Derived;
   summary: string;
   fileBase: string;
-  /** Kamera des Konfigurators, für die Ansicht "Wie im Konfigurator". */
+  /** Kamera des Konfigurators, für die Ansicht "Aktuell". */
   pose: CameraPose | null;
   onClose: () => void;
 }
@@ -19,7 +19,7 @@ const VIEWS: { id: PhotoView; label: string }[] = [
   { id: 'front', label: 'Vorne' },
   { id: 'side', label: 'Seite' },
   { id: 'rear', label: 'Hinten' },
-  { id: 'current', label: 'Wie im Konfigurator' },
+  { id: 'current', label: 'Aktuell' },
 ];
 
 export default function RenderDialog({ config, derived, summary, fileBase, pose, onClose }: Props) {

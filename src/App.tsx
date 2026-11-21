@@ -100,7 +100,7 @@ export function App() {
           </p>
           <div className="actions">
             <button type="button" id="open-render" className="button primary" onClick={openRender}>
-              Rendering erstellen
+              Rendering
             </button>
             <button type="button" id="open-bom" className="button" onClick={() => setDialog('bom')}>
               Stückliste

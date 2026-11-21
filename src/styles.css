@@ -190,7 +190,7 @@ dd {
 .button {
   appearance: none;
   border: 0;
-  padding: 9px 16px;
+  padding: 9px 15px;
   border-radius: 999px;
   background: var(--control);
   color: var(--fg);

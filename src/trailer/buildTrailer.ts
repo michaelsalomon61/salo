@@ -39,31 +39,22 @@ export function buildTrailer(config: TrailerConfig, d: Derived): TrailerBuild {
   const tyre = track(new THREE.MeshStandardMaterial({ color: 0x47474a, roughness: 0.9 }));
   const rim = track(new THREE.MeshStandardMaterial({ color: 0x141416, roughness: 0.42, metalness: 0.45 }));
 
-  /** Beläge: strukturierte Oberseite, schlichte Seitenflächen im selben Farbton. */
-  const surfaces = new Map<Look, { top: THREE.Material; side: THREE.Material }>();
+  /**
+   * Strukturierte Beläge. Ein Material je Bauteil, weil der Path Tracer
+   * Körper mit mehreren Materialien falsch zuordnet; die schmalen Seitenflächen
+   * tragen deshalb dieselbe Struktur wie die Oberseite.
+   */
+  const surfaces = new Map<Look, THREE.Material>();
   const surface = (look: Look) => {
     let s = surfaces.get(look);
     if (s) return s;
     if (look === 'wood') {
-      const map = track(woodTexture());
-      s = {
-        top: track(new THREE.MeshStandardMaterial({ map, roughness: 0.78 })),
-        side: track(new THREE.MeshStandardMaterial({ color: 0x8a5d38, roughness: 0.85 })),
-      };
+      s = track(new THREE.MeshStandardMaterial({ map: track(woodTexture()), roughness: 0.78 }));
     } else if (look === 'checker') {
       const normalMap = track(checkerNormalTexture());
-      const base = { color: 0xb6b9be, roughness: 0.42, metalness: 0.85 };
-      s = {
-        top: track(new THREE.MeshStandardMaterial({ ...base, normalMap })),
-        side: track(new THREE.MeshStandardMaterial(base)),
-      };
+      s = track(new THREE.MeshStandardMaterial({ color: 0xb6b9be, roughness: 0.42, metalness: 0.85, normalMap }));
     } else {
-      const normalMap = track(rubberNormalTexture());
-      const base = { color: 0x232325, roughness: 0.95 };
-      s = {
-        top: track(new THREE.MeshStandardMaterial({ ...base, normalMap })),
-        side: track(new THREE.MeshStandardMaterial(base)),
-      };
+      s = track(new THREE.MeshStandardMaterial({ color: 0x232325, roughness: 0.95, normalMap: track(rubberNormalTexture()) }));
     }
     surfaces.set(look, s);
     return s;
@@ -78,7 +69,7 @@ export function buildTrailer(config: TrailerConfig, d: Derived): TrailerBuild {
   bogie.add(drawbar);
   const frames: Record<Frame, THREE.Group> = { chassis: group, bogie, drawbar };
 
-  const mesh = (geometry: THREE.BufferGeometry, material: THREE.Material | THREE.Material[]) => {
+  const mesh = (geometry: THREE.BufferGeometry, material: THREE.Material) => {
     const m = new THREE.Mesh(geometry, material);
     m.castShadow = true;
     m.receiveShadow = true;
@@ -91,11 +82,9 @@ export function buildTrailer(config: TrailerConfig, d: Derived): TrailerBuild {
     // Leicht gebrochene Kanten fangen Glanzlichter und lassen die Bauteile weniger künstlich wirken.
     const radius = Math.min(0.004, Math.min(sx, sy, sz) * 0.3);
     const geometry = track(new RoundedBoxGeometry(sx, sy, sz, 2, radius));
-    let material: THREE.Material | THREE.Material[] = plain(p.look);
+    let material: THREE.Material = plain(p.look);
     if (p.look === 'wood' || p.look === 'checker' || p.look === 'rubber') {
-      const { top, side } = surface(p.look);
-      // BoxGeometry: Materialreihenfolge +x, -x, +y, -y, +z, -z.
-      material = [side, side, top, side, side, side];
+      material = surface(p.look);
       const uv = geometry.attributes.uv;
       const tile = TILE[p.look] ?? 1;
       for (let i = 0; i < uv.count; i++) {

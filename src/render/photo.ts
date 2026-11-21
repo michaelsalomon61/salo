@@ -211,7 +211,7 @@ export class PhotoRenderer {
         corner.set(k & 1 ? max.x : min.x, k & 2 ? max.y : min.y, k & 4 ? max.z : min.z).project(camera);
         extent = Math.max(extent, Math.abs(corner.x), Math.abs(corner.y) * 1.25);
       }
-      distance *= extent / 0.84;
+      distance *= extent / 0.9;
     }
     camera.position.copy(target).addScaledVector(direction, distance);
     // Etwas über die Mitte zielen: der Anhänger rückt nach unten, darüber bleibt Platz für Halle und Himmel.
