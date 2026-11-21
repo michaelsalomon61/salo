@@ -3,12 +3,18 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { CSS2DObject, CSS2DRenderer } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
 import { buildTrailer, type TrailerBuild } from '../trailer/buildTrailer';
+import { jointAngles } from '../trailer/parts';
 import type { Derived, TrailerConfig } from '../trailer/config';
 
 const MM = 0.001;
 const VIEW_DIRECTION = new THREE.Vector3(0.85, 0.3, 0.9).normalize();
-const DRAWBAR_UP = 1.36;
 const mmFormat = new Intl.NumberFormat('de-DE');
+
+export interface CameraPose {
+  position: [number, number, number];
+  target: [number, number, number];
+  fov: number;
+}
 
 /** Die 3D-Bühne: Renderer, Kamera, Licht, Anhänger und Maßlinien. */
 export class TrailerScene {
@@ -40,7 +46,7 @@ export class TrailerScene {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.toneMapping = THREE.NeutralToneMapping;
     this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.shadowMap.type = THREE.PCFShadowMap;
     host.appendChild(this.renderer.domElement);
 
     this.labels.domElement.className = 'stage-labels';
@@ -89,12 +95,12 @@ export class TrailerScene {
     this.trailer = buildTrailer(config, derived);
     this.scene.add(this.trailer.group);
 
-    this.drawbarTarget = config.drawbarUp ? DRAWBAR_UP : 0;
+    const joints = jointAngles(config);
+    this.drawbarTarget = joints.drawbar;
     if (this.reducedMotion) this.drawbarAngle = this.drawbarTarget;
     this.trailer.drawbar.rotation.z = this.drawbarAngle;
 
-    // Rechts ist +z; ein Einschlag nach rechts dreht den Drehschemel daher um -y.
-    this.steerTarget = -THREE.MathUtils.degToRad(config.steeringDeg);
+    this.steerTarget = joints.steering;
     if (this.reducedMotion) this.steerAngle = this.steerTarget;
     this.trailer.bogie.rotation.y = this.steerAngle;
 
@@ -134,6 +140,15 @@ export class TrailerScene {
 
   setDimensionsVisible(visible: boolean) {
     this.dims.visible = visible;
+  }
+
+  /** Aktuelle Kamera, damit das Rendering denselben Blickwinkel übernehmen kann. */
+  getPose(): CameraPose {
+    return {
+      position: this.camera.position.toArray(),
+      target: this.controls.target.toArray(),
+      fov: this.camera.fov,
+    };
   }
 
   resetView() {

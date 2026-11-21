@@ -39,10 +39,11 @@ export const COLORS = [
   { id: 'ral7035', name: 'Lichtgrau', ral: 'RAL 7035', hex: '#c9cdcb' },
 ] as const;
 
+/** kgPerM2: Mehr- oder Mindergewicht des Belags gegenüber Stahlblech, für die Überschlagsrechnung. */
 export const DECKS: { id: DeckMaterial; name: string; kgPerM2: number }[] = [
   { id: 'steel', name: 'Stahlblech', kgPerM2: 0 },
-  { id: 'checker', name: 'Riffelblech', kgPerM2: 8 },
-  { id: 'wood', name: 'Hartholz', kgPerM2: 26 },
+  { id: 'checker', name: 'Riffelblech', kgPerM2: 0 },
+  { id: 'wood', name: 'Hartholz', kgPerM2: -30 },
   { id: 'rubber', name: 'Gummi', kgPerM2: 12 },
 ];
 
@@ -73,9 +74,8 @@ export interface Derived {
   wheelWidthMm: number;
   axleSpacingMm: number;
   frameHeightMm: number;
-  tareKg: number;
-  grossKg: number;
-  wheelLoadKg: number;
+  /** Überschlägiges Eigengewicht, nur für die Auslegung der Räder. Das genaue Gewicht liefert die Stückliste. */
+  tareEstimateKg: number;
   minAxles: number;
   minLengthMm: number;
   minWidthMm: number;
@@ -100,11 +100,11 @@ function wheelDiameterFor(wheelLoadKg: number): number {
   if (wheelLoadKg <= 600) return 250;
   if (wheelLoadKg <= 1100) return 310;
   if (wheelLoadKg <= 1900) return 400;
-  if (wheelLoadKg <= 3400) return 500;
+  if (wheelLoadKg <= 3600) return 500;
   return 560;
 }
 
-const wheelMassKg = (diameterMm: number) => 260 * (diameterMm / 1000) ** 2;
+export const wheelMassKg = (diameterMm: number) => Math.round(260 * (diameterMm / 1000) ** 2);
 
 export function minAxlesFor(payloadT: number): number {
   return clamp(Math.ceil(payloadT / MAX_AXLE_LOAD_T), LIMITS.axles.min, LIMITS.axles.max);
@@ -122,8 +122,9 @@ export function computeDerived(c: TrailerConfig): Derived {
   const wheelCount = wheelsPerAxle * c.axles;
 
   const deck = DECKS.find((d) => d.id === c.deck) ?? DECKS[0];
-  const structureKg = areaM2 * (40 + 2.4 * c.payloadT + deck.kgPerM2);
-  const fixedKg = 180 + c.axles * 60;
+  // An der Stückliste typischer Konfigurationen abgeglichen.
+  const structureKg = areaM2 * (125 + 2.2 * c.payloadT + deck.kgPerM2);
+  const fixedKg = 300 + c.axles * 60;
   const tareWith = (diameterMm: number) =>
     structureKg + fixedKg + wheelCount * wheelMassKg(diameterMm);
 
@@ -131,8 +132,7 @@ export function computeDerived(c: TrailerConfig): Derived {
   let wheelDiameterMm = wheelDiameterFor((c.payloadT * 1000 + structureKg + fixedKg) / wheelCount);
   wheelDiameterMm = wheelDiameterFor((c.payloadT * 1000 + tareWith(wheelDiameterMm)) / wheelCount);
 
-  const tareKg = roundTo(tareWith(wheelDiameterMm), 10);
-  const grossKg = c.payloadT * 1000 + tareKg;
+  const tareEstimateKg = roundTo(tareWith(wheelDiameterMm), 10);
   const wheelWidthMm = roundTo(wheelDiameterMm * 0.42, 10);
   const axleSpacingMm = wheelDiameterMm + 120;
   const frameHeightMm = clamp(
@@ -179,9 +179,7 @@ export function computeDerived(c: TrailerConfig): Derived {
     wheelWidthMm,
     axleSpacingMm,
     frameHeightMm,
-    tareKg,
-    grossKg,
-    wheelLoadKg: Math.round(grossKg / wheelCount / 10) * 10,
+    tareEstimateKg,
     minAxles: minAxlesFor(c.payloadT),
     minLengthMm,
     minWidthMm,

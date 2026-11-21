@@ -24,7 +24,7 @@ function tiling(c: HTMLCanvasElement, color: boolean) {
   return t;
 }
 
-/** Hartholzbohlen in Längsrichtung, eine Kachel entspricht 1 m × 1 m. */
+/** Maserung für Hartholzbohlen: fünf Streifen, je einer pro Bohle, 1 m lang. */
 export function woodTexture(): THREE.CanvasTexture {
   const size = 512;
   const { c, g } = canvas(size, size);
@@ -38,14 +38,39 @@ export function woodTexture(): THREE.CanvasTexture {
       g.fillStyle = `rgba(52, 30, 12, ${0.05 + rnd() * 0.13})`;
       g.fillRect(0, i * ph + rnd() * ph, size, 1 + rnd() * 1.5);
     }
-    g.fillStyle = 'rgba(25, 14, 6, 0.75)';
-    g.fillRect(0, i * ph, size, 3);
   }
   return tiling(c, true);
 }
 
-/** Höhenkarte für Riffelblech: gegeneinander versetzte Tränen. */
-export function checkerBumpTexture(): THREE.CanvasTexture {
+/**
+ * Wandelt eine Höhenkarte (Helligkeit = Höhe) in eine kachelbare Normalenkarte um.
+ * Normalenkarten versteht auch der Path Tracer, Höhenkarten nicht.
+ */
+function normalMapFrom(height: HTMLCanvasElement, strength: number): THREE.CanvasTexture {
+  const { width: w, height: h } = height;
+  const src = height.getContext('2d')!.getImageData(0, 0, w, h).data;
+  const { c, g } = canvas(w, h);
+  const out = g.createImageData(w, h);
+  const at = (x: number, y: number) => src[(((y + h) % h) * w + ((x + w) % w)) * 4] / 255;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const nx = -(at(x + 1, y) - at(x - 1, y)) * strength;
+      // Die Bildzeilen laufen nach unten, die Texturkoordinate v nach oben.
+      const ny = (at(x, y + 1) - at(x, y - 1)) * strength;
+      const len = Math.hypot(nx, ny, 1);
+      const i = (y * w + x) * 4;
+      out.data[i] = (nx / len) * 127.5 + 127.5;
+      out.data[i + 1] = (ny / len) * 127.5 + 127.5;
+      out.data[i + 2] = (1 / len) * 127.5 + 127.5;
+      out.data[i + 3] = 255;
+    }
+  }
+  g.putImageData(out, 0, 0);
+  return tiling(c, false);
+}
+
+/** Normalenkarte für Riffelblech: gegeneinander versetzte Tränen. */
+export function checkerNormalTexture(): THREE.CanvasTexture {
   const size = 256;
   const { c, g } = canvas(size, size);
   g.fillStyle = '#6a6a6a';
@@ -67,18 +92,22 @@ export function checkerBumpTexture(): THREE.CanvasTexture {
       tear((i + 0.75) * cell, (j + 0.75) * cell, -Math.PI / 4);
     }
   }
-  return tiling(c, false);
+  g.filter = 'blur(1.5px)';
+  g.drawImage(c, 0, 0);
+  return normalMapFrom(c, 3);
 }
 
-/** Höhenkarte für eine fein gerippte Gummiauflage. */
-export function rubberBumpTexture(): THREE.CanvasTexture {
+/** Normalenkarte für eine fein gerippte Gummiauflage. */
+export function rubberNormalTexture(): THREE.CanvasTexture {
   const size = 64;
   const { c, g } = canvas(size, size);
   g.fillStyle = '#505050';
   g.fillRect(0, 0, size, size);
   g.fillStyle = '#b0b0b0';
-  g.fillRect(0, 0, size, size / 2);
-  return tiling(c, false);
+  g.fillRect(0, size / 4, size, size / 2);
+  g.filter = 'blur(3px)';
+  g.drawImage(c, 0, 0);
+  return normalMapFrom(c, 1.5);
 }
 
 /** Traglastangabe wie am Fahrzeug aufgebracht, auf transparentem Grund. */

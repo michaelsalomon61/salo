@@ -1,4 +1,5 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { Suspense, lazy, useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
+import { buildBom } from './trailer/bom';
 import {
   COLORS,
   DECKS,
@@ -8,7 +9,14 @@ import {
   type DeckMaterial,
   type TrailerConfig,
 } from './trailer/config';
+import { trailerParts } from './trailer/parts';
+import { BomDialog } from './ui/BomDialog';
+import { saveBlob } from './ui/download';
+import type { CameraPose } from './viewer/scene';
 import { Viewer } from './viewer/Viewer';
+
+// Rendering und CAD-Kern sind groß und werden erst bei Bedarf geladen.
+const RenderDialog = lazy(() => import('./ui/RenderDialog'));
 
 const nf = new Intl.NumberFormat('de-DE');
 const mm = (v: number) => `${nf.format(v)} mm`;
@@ -26,11 +34,46 @@ export function App() {
     setRequested((current) => ({ ...current, [key]: value }));
 
   const color = COLORS.find((c) => c.id === config.colorId) ?? COLORS[0];
+  const deck = DECKS.find((d) => d.id === config.deck) ?? DECKS[0];
+
+  // Die Stückliste liefert auch das Eigengewicht für die Kennwerte.
+  const bom = useMemo(() => buildBom(trailerParts(config, derived).parts), [config, derived]);
+  const grossKg = config.payloadT * 1000 + bom.totalKg;
+
+  const [dialog, setDialog] = useState<'render' | 'bom' | null>(null);
+  const [pose, setPose] = useState<CameraPose | null>(null);
+  const poseRef = useRef<(() => CameraPose) | null>(null);
+  const closeDialog = useCallback(() => setDialog(null), []);
+  const [step, setStep] = useState<'idle' | 'working' | 'failed'>('idle');
+
+  const summary = `${config.payloadT} t Traglast, ${config.axles} Achsen, ${mm(config.lengthMm)} × ${mm(config.widthMm)}, Ladehöhe ${mm(config.deckHeightMm)}, ${deck.name}, ${color.ral} ${color.name}`;
+  const fileBase = `anhaenger-${config.payloadT}t-${config.lengthMm}x${config.widthMm}`;
+
+  const openRender = () => {
+    setPose(poseRef.current?.() ?? null);
+    setDialog('render');
+  };
+  const saveStep = async () => {
+    setStep('working');
+    try {
+      const { exportStep } = await import('./cad/exportStep');
+      saveBlob(await exportStep(config, derived), `${fileBase}.step`);
+      setStep('idle');
+    } catch {
+      setStep('failed');
+    }
+  };
 
   return (
     <div className="app">
       <section className="stage" aria-label="3D-Ansicht">
-        <Viewer config={config} derived={derived} showDimensions={showDimensions} resetSignal={resetSignal} />
+        <Viewer
+          config={config}
+          derived={derived}
+          showDimensions={showDimensions}
+          resetSignal={resetSignal}
+          poseRef={poseRef}
+        />
         <div className="stage-tools">
           <button
             type="button"
@@ -55,6 +98,22 @@ export function App() {
           <p className="lede">
             {config.payloadT} t Traglast, {config.axles} Achsen, {mm(config.lengthMm)} × {mm(config.widthMm)}
           </p>
+          <div className="actions">
+            <button type="button" id="open-render" className="button primary" onClick={openRender}>
+              Rendering erstellen
+            </button>
+            <button type="button" id="open-bom" className="button" onClick={() => setDialog('bom')}>
+              Stückliste
+            </button>
+            <button type="button" id="save-step" className="button" disabled={step === 'working'} onClick={saveStep}>
+              {step === 'working' ? 'STEP wird erzeugt …' : 'STEP-Modell'}
+            </button>
+          </div>
+          {step === 'failed' && (
+            <p className="note" role="alert">
+              Das STEP-Modell konnte nicht erzeugt werden. Bitte Verbindung prüfen und erneut versuchen.
+            </p>
+          )}
         </header>
 
         <Group title="Traglast">
@@ -161,15 +220,16 @@ export function App() {
 
         <Group title="Kennwerte">
           <dl className="specs">
-            <Spec term="Eigengewicht" value={`ca. ${kg(derived.tareKg)}`} />
-            <Spec term="Gesamtgewicht" value={`ca. ${kg(derived.grossKg)}`} />
+            <Spec term="Eigengewicht" value={`ca. ${kg(bom.totalKg)}`} />
+            <Spec term="Gesamtgewicht" value={`ca. ${kg(grossKg)}`} />
             <Spec
               term="Fahrwerk"
               value={`${config.axles} × ${derived.axleType === 'pendel' ? 'Pendelachse' : 'Starrachse'}`}
             />
             <Spec term="Bereifung" value={`${derived.wheelCount} × Vollgummi Ø ${derived.wheelDiameterMm} mm`} />
-            <Spec term="Radlast" value={`ca. ${kg(derived.wheelLoadKg)}`} />
+            <Spec term="Radlast" value={`ca. ${kg(Math.round(grossKg / derived.wheelCount / 10) * 10)}`} />
             <Spec term="Rahmenhöhe" value={mm(derived.frameHeightMm)} />
+            <Spec term="Einzelteile" value={nf.format(bom.pieceCount)} />
           </dl>
           <p className="footnote">
             Anschauungsmodell. Die Kennwerte sind Schätzungen nach Faustregeln und ersetzen keine technische
@@ -177,6 +237,20 @@ export function App() {
           </p>
         </Group>
       </aside>
+
+      {dialog === 'bom' && <BomDialog bom={bom} summary={summary} fileBase={fileBase} onClose={closeDialog} />}
+      {dialog === 'render' && (
+        <Suspense fallback={null}>
+          <RenderDialog
+            config={config}
+            derived={derived}
+            summary={summary}
+            fileBase={fileBase}
+            pose={pose}
+            onClose={closeDialog}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }
