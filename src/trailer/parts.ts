@@ -198,11 +198,12 @@ export function trailerParts(config: TrailerConfig, d: Derived): TrailerParts {
       density: 1250,
     });
   } else if (config.deck === 'hardwood' || config.deck === 'pine') {
+    // Die Bohlen liegen quer zur Fahrtrichtung.
     const hard = config.deck === 'hardwood';
-    const count = Math.max(1, Math.round(deckW / 0.2));
-    const pitch = deckW / count;
+    const count = Math.max(1, Math.round(deckL / 0.2));
+    const pitch = deckL / count;
     for (let i = 0; i < count; i++) {
-      box('chassis', 'Ladefläche', hard ? 'Hartholzbohle' : 'Kiefernbohle', [deckL, deckT, pitch - 0.003], [0, H - deckT / 2, -deckW / 2 + (i + 0.5) * pitch], {
+      box('chassis', 'Ladefläche', hard ? 'Hartholzbohle' : 'Kiefernbohle', [pitch - 0.003, deckT, deckW], [-deckL / 2 + (i + 0.5) * pitch, H - deckT / 2, 0], {
         look: config.deck,
         material: hard ? 'Hartholz' : 'Kiefer',
         density: hard ? 750 : 520,
