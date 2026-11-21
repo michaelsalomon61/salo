@@ -63,6 +63,9 @@ export function advise(config: TrailerConfig, derived: Derived, tareKg: number):
     notes.push(`Bei ${config.slopePct} % Steigung den Anhänger mit Feststellbremse oder Unterlegkeilen sichern.`);
   }
 
+  if (config.body === 'lowbed' && config.ramp === 'rear' && config.rearCoupling !== 'none') {
+    notes.push('Die Auffahrklappe hinten verdeckt die Kupplung hinten. Eines von beiden abwählen.');
+  }
   if (config.trailersInTrain > 1 && config.rearCoupling === 'none') {
     notes.push('Für den Zugverband mit mehreren Anhängern ist eine Kupplung hinten nötig.');
   }

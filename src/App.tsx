@@ -29,7 +29,8 @@ export function App() {
     setRequested((current) => ({ ...current, [key]: value }));
 
   // Die Stückliste liefert auch das Eigengewicht für Kennwerte und Hinweise.
-  const bom = useMemo(() => buildBom(trailerParts(config, derived).parts), [config, derived]);
+  const description = useMemo(() => trailerParts(config, derived), [config, derived]);
+  const bom = useMemo(() => buildBom(description.parts), [description]);
   const perf = performance(config, derived, bom.totalKg);
   const notices = useMemo(() => advise(config, derived, bom.totalKg), [config, derived, bom]);
 
@@ -104,9 +105,50 @@ export function App() {
               options={[2, 3, 4].map((n) => ({ id: n, name: String(n), disabled: n < derived.minAxles }))}
               onChange={(v) => set('axles', v)}
             />
-            <Slider id="length" label="Länge" value={config.lengthMm} display={mm(config.lengthMm)} {...LIMITS.lengthMm} min={derived.minLengthMm} note={adjustments.lengthMm} onChange={(v) => set('lengthMm', v)} />
+            {config.body === 'longload' ? (
+              <Slider id="length" label="Eingestellte Länge" value={config.lengthMm} display={mm(config.lengthMm)} min={config.minLengthMm} max={config.maxLengthMm} step={config.rasterMm} onChange={(v) => set('lengthMm', v)} />
+            ) : (
+              <Slider id="length" label="Länge" value={config.lengthMm} display={mm(config.lengthMm)} {...LIMITS.lengthMm} min={derived.minLengthMm} note={adjustments.lengthMm} onChange={(v) => set('lengthMm', v)} />
+            )}
             <Slider id="width" label="Breite" value={config.widthMm} display={mm(config.widthMm)} {...LIMITS.widthMm} min={derived.minWidthMm} note={adjustments.widthMm} onChange={(v) => set('widthMm', v)} />
-            <Slider id="deck-height" label="Ladehöhe" value={config.deckHeightMm} display={mm(config.deckHeightMm)} {...LIMITS.deckHeightMm} min={derived.minDeckHeightMm} note={adjustments.deckHeightMm} onChange={(v) => set('deckHeightMm', v)} />
+            <Slider id="deck-height" label={config.body === 'lowbed' ? 'Höhe über den Achsen' : 'Ladehöhe'} value={config.deckHeightMm} display={mm(config.deckHeightMm)} {...LIMITS.deckHeightMm} min={derived.minDeckHeightMm} note={adjustments.deckHeightMm} onChange={(v) => set('deckHeightMm', v)} />
+          </Section>
+
+          <Section title="Bauform">
+            <Segmented id="body" label="Bauform" value={config.body} options={OPTIONS.body} onChange={(v) => set('body', v)} />
+            {config.body === 'lowbed' && (
+              <>
+                <Slider id="bed-height" label="Ladehöhe Tiefbett" value={config.bedHeightMm} display={mm(config.bedHeightMm)} {...LIMITS.bedHeightMm} max={Math.min(LIMITS.bedHeightMm.max, config.deckHeightMm - 200)} note={adjustments.bedHeightMm} onChange={(v) => set('bedHeightMm', v)} />
+                <Segmented id="rear-wheels" label="Hinterräder" value={config.rearWheels} options={OPTIONS.rearWheels} note={adjustments.rearWheels} onChange={(v) => set('rearWheels', v)} />
+                <Segmented
+                  id="ramp"
+                  label="Auffahrklappe"
+                  value={config.ramp}
+                  note={adjustments.ramp}
+                  options={OPTIONS.ramp.map((o) => ({ ...o, disabled: o.id === 'rear' && config.rearWheels === 'inside' }))}
+                  onChange={(v) => set('ramp', v)}
+                />
+              </>
+            )}
+            {config.body === 'longload' && (
+              <>
+                <Slider id="min-length" label="Mindestlänge" value={config.minLengthMm} display={mm(config.minLengthMm)} min={LIMITS.lengthMm.min} max={LIMITS.lengthMm.max} step={100} note={adjustments.minLengthMm} onChange={(v) => set('minLengthMm', v)} />
+                <Slider id="max-length" label="Maximallänge" value={config.maxLengthMm} display={mm(config.maxLengthMm)} min={LIMITS.lengthMm.min} max={LIMITS.lengthMm.max} step={100} note={adjustments.maxLengthMm} onChange={(v) => set('maxLengthMm', v)} />
+                <Segmented id="raster" label="Längenrasterung" value={config.rasterMm} options={OPTIONS.rasterMm} onChange={(v) => set('rasterMm', v)} />
+              </>
+            )}
+            {config.body === 'platform' && (
+              <>
+                <Segmented id="roof" label="Dachaufbau" value={config.roof} options={OPTIONS.roof} onChange={(v) => set('roof', v)} />
+                {config.roof !== 'none' && (
+                  <>
+                    <Segmented id="roof-shape" label="Dachform" value={config.roofShape} options={OPTIONS.roofShape} onChange={(v) => set('roofShape', v)} />
+                    <Slider id="roof-clear" label="Lichte Höhe" value={config.roofClearMm} display={mm(config.roofClearMm)} {...LIMITS.roofClearMm} onChange={(v) => set('roofClearMm', v)} />
+                    <Chips id="roof-sides" label="Seiten" value={config.roofSides} options={OPTIONS.roofSides} onChange={(v) => set('roofSides', v)} />
+                  </>
+                )}
+              </>
+            )}
           </Section>
 
           <Section title="Einsatz">
@@ -149,17 +191,21 @@ export function App() {
 
           <Section title="Ladefläche">
             <Chips id="deck" label="Belag" value={config.deck} options={OPTIONS.deck} onChange={(v) => set('deck', v)} />
-            {hasBoardDeck(config.deck) && (
+            {hasBoardDeck(config.deck) && config.body === 'platform' && (
               <Segmented id="edge" label="Kantenschutz" value={config.edgeProtection} options={OPTIONS.edgeProtection} onChange={(v) => set('edgeProtection', v)} />
             )}
-            <Segmented id="wall-type" label="Bordwände" value={config.wallType} options={OPTIONS.wallType} onChange={(v) => set('wallType', v)} />
+            {config.body === 'platform' && (
+              <Segmented id="wall-type" label="Bordwände" value={config.wallType} options={OPTIONS.wallType} onChange={(v) => set('wallType', v)} />
+            )}
             {config.wallType !== 'none' && (
               <>
                 <Segmented id="wall-material" label="Material der Bordwände" value={config.wallMaterial} options={OPTIONS.wallMaterial} onChange={(v) => set('wallMaterial', v)} />
                 <Segmented id="wall-height" label="Höhe der Bordwände" value={config.wallHeightMm} options={OPTIONS.wallHeightMm} onChange={(v) => set('wallHeightMm', v)} />
               </>
             )}
-            <Switch id="lashing" label="Verzurrösen zur Ladungssicherung" checked={config.lashingRings} onChange={(v) => set('lashingRings', v)} />
+            {config.body !== 'longload' && (
+              <Switch id="lashing" label="Verzurrösen zur Ladungssicherung" checked={config.lashingRings} onChange={(v) => set('lashingRings', v)} />
+            )}
           </Section>
 
           <Section title="Deichsel und Kupplung">
@@ -240,6 +286,10 @@ export function App() {
             <Spec term="Radlast" value={`ca. ${kg(perf.wheelLoadKg)}`} />
             <Spec term="Zugkraftbedarf" value={`ca. ${nf.format(perf.pullN)} N`} />
             <Spec term="Rahmenhöhe" value={mm(derived.frameHeightMm)} />
+            <Spec term="Gesamthöhe" value={mm(Math.round(description.height * 100) * 10)} />
+            {description.bed && (
+              <Spec term="Tiefbett (L × B)" value={`${mm(Math.round(description.bed.length * 100) * 10)} × ${mm(Math.round(description.bed.width * 100) * 10)}`} />
+            )}
             <Spec term="Einzelteile" value={nf.format(bom.pieceCount)} />
           </dl>
           <p className="footnote">
@@ -252,7 +302,7 @@ export function App() {
       {dialog === 'bom' && <BomDialog bom={bom} summary={summary} fileBase={fileBase} onClose={closeDialog} />}
       {dialog === 'summary' && (
         <SummaryDialog
-          sections={describeConfig(config, derived, bom.totalKg, bom.pieceCount)}
+          sections={describeConfig(config, derived, description, bom.totalKg, bom.pieceCount)}
           notices={notices}
           fileBase={fileBase}
           onClose={closeDialog}

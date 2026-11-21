@@ -74,6 +74,9 @@ export function buildTrailer(config: TrailerConfig, d: Derived): TrailerBuild {
       case 'mesh':
         m = standard({ map: track(meshTexture()), alphaTest: 0.5, roughness: 0.5, metalness: 0.6 });
         break;
+      case 'tarp':
+        m = standard({ color: 0xd4d6d9, roughness: 0.7, side: THREE.DoubleSide });
+        break;
       case 'yellow':
         m = standard({ color: 0xe9b800, roughness: 0.65 });
         break;
@@ -141,6 +144,7 @@ export function buildTrailer(config: TrailerConfig, d: Derived): TrailerBuild {
     const object = mesh(geometry, material(p.look));
     object.position.fromArray(p.pos);
     if (p.rotY) object.rotation.y = p.rotY;
+    if (p.rotX) object.rotation.x = p.rotX;
     return object;
   };
 

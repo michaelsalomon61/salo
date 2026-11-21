@@ -53,4 +53,23 @@ describe('STEP-Export', () => {
       expect(replicad.measureVolume(s.shape), s.name).toBeGreaterThan(0);
     }
   }, 120_000);
+
+  it('exportiert die Sonderbauformen und Lenkungsarten', () => {
+    const variants = [
+      { body: 'lowbed', rearWheels: 'outside', ramp: 'rear', steering: 'ackermann2' },
+      { body: 'lowbed', rearWheels: 'inside', ramp: 'side', steering: 'doubleTurntable' },
+      { body: 'longload', steering: 'allWheel' },
+      { body: 'platform', roof: 'tarp', roofShape: 'mono', roofSides: 'curtain', steering: 'ackermann4' },
+    ] as const;
+    for (const variant of variants) {
+      const { config, derived } = resolve({ ...DEFAULT_CONFIG, ...variant });
+      const solids = buildStepParts(replicad, config, derived);
+      expect(solids).toHaveLength(trailerParts(config, derived).parts.length);
+      for (const s of solids) {
+        expect(replicad.measureVolume(s.shape), `${s.name} (${variant.body})`).toBeGreaterThan(0);
+        // Nichts liegt unter der Fahrbahn.
+        expect(s.shape.boundingBox.bounds[0][2], `${s.name} (${variant.body})`).toBeGreaterThan(-2);
+      }
+    }
+  }, 180_000);
 });

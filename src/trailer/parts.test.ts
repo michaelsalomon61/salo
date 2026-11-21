@@ -19,10 +19,18 @@ function check(overrides: Partial<TrailerConfig>) {
     if (p.kind === 'box') expect(Math.min(...p.size), p.name).toBeGreaterThan(0);
     expect(description.frames[p.frame], `${p.name} in ${p.frame}`).toBeDefined();
     expect(partMassKg(p), p.name).toBeGreaterThanOrEqual(0);
+
+    // Nichts ragt unter die Fahrbahn (die klappbare Deichsel ausgenommen).
+    if (p.frame !== 'drawbar') {
+      let y = p.pos[1];
+      for (let f = description.frames[p.frame]; f; f = description.frames[f.parent ?? '']) y += f.origin[1];
+      const half = p.kind === 'box' ? p.size[1] / 2 : p.kind === 'wheel' ? p.radius : p.kind === 'cylinder' ? (p.axis === 'y' ? p.length / 2 : p.radius) : p.radius + p.tube;
+      expect(y - half, `${p.name} unter der Fahrbahn (${JSON.stringify(overrides)})`).toBeGreaterThan(-0.002);
+    }
   }
   const bom = buildBom(description.parts);
   expect(bom.totalKg).toBeGreaterThan(0);
-  expect(describeConfig(config, derived, bom.totalKg, bom.pieceCount).length).toBeGreaterThan(5);
+  expect(describeConfig(config, derived, description, bom.totalKg, bom.pieceCount).length).toBeGreaterThan(5);
   return { config, derived, description, bom };
 }
 
@@ -79,6 +87,76 @@ describe('Bauteilbeschreibung', () => {
     const high = check({ couplingHeightMm: 900 }).description.frames.drawbar.angle;
     expect(level).toBe(0);
     expect(high).toBeGreaterThan(0);
+  });
+});
+
+describe('Sonderbauformen', () => {
+  const steeringIds = OPTIONS.steering.map((o) => o.id);
+
+  it('baut den Tieflader mit jeder Lenkung, Radanordnung und Klappe', () => {
+    for (const steering of steeringIds) {
+      for (const rearWheels of ['inside', 'outside'] as const) {
+        for (const ramp of ['none', 'side', 'rear'] as const) {
+          for (const [payloadT, axles] of [[6, 2], [24, 2], [40, 4]] as const) {
+            const { config, description } = check({ body: 'lowbed', steering, rearWheels, ramp, payloadT, axles, bedHeightMm: 180, brake: 'air', chocks: 'single', lashingRings: true, lighting: 'stvzo', rearCoupling: 'pin', parkingBrake: true });
+            expect(description.bed!.length).toBeGreaterThan(1);
+            expect(description.bed!.width).toBeGreaterThanOrEqual(0.8);
+            expect(description.loadSurfaceY).toBeCloseTo(config.bedHeightMm / 1000, 6);
+            // Außen laufende Räder gibt es nur mit starren Hinterachsen, die Heckklappe nur mit ihnen.
+            if (config.rearWheels === 'outside') expect(['turntable', 'ackermann2']).toContain(steering);
+            if (config.ramp === 'rear') expect(config.rearWheels).toBe('outside');
+          }
+        }
+      }
+    }
+  });
+
+  it('legt das Tiefbett mindestens 200 mm unter die Podeste', () => {
+    const { config } = check({ body: 'lowbed', bedHeightMm: 800 });
+    expect(config.bedHeightMm).toBeLessThanOrEqual(config.deckHeightMm - 200);
+  });
+
+  it('hält beim Langmaterial-Anhänger Länge, Grenzen und Raster zusammen', () => {
+    for (const steering of steeringIds) {
+      for (const rasterMm of [250, 500, 1000] as const) {
+        for (const [minLengthMm, maxLengthMm, lengthMm] of [[2000, 12000, 7300], [5000, 8000, 6200], [9000, 9500, 2000]]) {
+          const { config, description } = check({ body: 'longload', steering, rasterMm, minLengthMm, maxLengthMm, lengthMm, payloadT: 12, brake: 'air', chocks: 'double' });
+          expect(config.maxLengthMm).toBeGreaterThanOrEqual(config.minLengthMm);
+          expect(config.lengthMm).toBeGreaterThanOrEqual(config.minLengthMm);
+          expect(config.lengthMm).toBeLessThanOrEqual(config.maxLengthMm);
+          expect((config.lengthMm - config.minLengthMm) % rasterMm).toBe(0);
+          expect(resolve(config).config).toEqual(config);
+
+          // Das Innenrohr steckt in jeder Stellung noch im Außenrohr und ragt hinten nicht heraus.
+          const tube = (name: string) => description.parts.find((p) => p.name === name)!;
+          const outer = tube('Langrohr außen');
+          const inner = tube('Langrohr innen');
+          if (outer.kind !== 'box' || inner.kind !== 'box') throw new Error('Langrohr fehlt');
+          const outerRear = outer.pos[0] - outer.size[0] / 2;
+          const outerFront = outer.pos[0] + outer.size[0] / 2;
+          const innerRear = inner.pos[0] - inner.size[0] / 2;
+          expect(innerRear).toBeGreaterThanOrEqual(outerRear - 1e-6);
+          expect(outerFront - innerRear).toBeGreaterThan(0.3);
+        }
+      }
+    }
+  });
+
+  it('baut den Dachaufbau in jeder Form und schließt ihn auf Wunsch seitlich', () => {
+    for (const roof of ['tarp', 'sheet'] as const) {
+      for (const roofShape of ['flat', 'mono'] as const) {
+        for (const roofSides of OPTIONS.roofSides.map((o) => o.id)) {
+          for (const wallType of ['none', 'folding'] as const) {
+            const { config, description, bom } = check({ roof, roofShape, roofSides, wallType, roofClearMm: 2000 });
+            expect(description.height).toBeGreaterThan((config.deckHeightMm + 2000) / 1000);
+            expect(bom.groups.some((g) => g.group === 'Dachaufbau')).toBe(true);
+            // Mit Dach übernehmen die Dachpfosten die Ecken der Bordwände.
+            expect(description.parts.some((p) => p.name === 'Eckrunge')).toBe(false);
+          }
+        }
+      }
+    }
+    expect(check({ roof: 'tarp', body: 'lowbed' }).config.roof).toBe('none');
   });
 });
 

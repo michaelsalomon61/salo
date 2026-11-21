@@ -15,6 +15,10 @@ Aus der fertigen Konfiguration lassen sich drei Ergebnisse erzeugen:
 - **STEP-Modell**: jedes Bauteil als benannter Körper, Maße in Millimetern, z nach oben. Lenkung gerade,
   Deichsel waagerecht.
 
+Bauformen: durchgehende Plattform (auf Wunsch mit Dachaufbau als Plane oder Blech, Flach- oder Pultdach,
+offen oder seitlich geschlossen), Tieflader (Hinterräder innen oder außen laufend, Auffahrklappe seitlich
+oder hinten) und Langmaterial-Anhänger mit ausziehbarem Langrohr (Mindest- und Maximallänge, Raster).
+
 Lenkungsarten: Drehschemel, Doppel-Drehschemel, 2-Rad- und 4-Rad-Achsschenkellenkung sowie Allradlenkung
 mit Pendelachsen. Der Lenkeinschlag lässt sich im Modell verstellen; alle gelenkten Räder rollen dabei um
 einen gemeinsamen Punkt.

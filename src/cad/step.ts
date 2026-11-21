@@ -21,6 +21,7 @@ const LOOK_COLORS: Record<Exclude<Look, 'paint'>, string> = {
   plywood: '#3b2a21',
   rubber: '#232325',
   mesh: '#9a9ea4',
+  tarp: '#d4d6d9',
   yellow: '#e9b800',
   lampRed: '#b30f14',
   lampAmber: '#e58a00',
@@ -53,6 +54,7 @@ function solidFor(k: Kernel, p: Part): Solid {
           solid = solid.cut(k.makeBox(half.map((h) => -h) as Vec3, half as Vec3));
         }
       }
+      if (p.rotX) solid = solid.rotate((p.rotX * 180) / Math.PI, [0, 0, 0], [1, 0, 0]);
       return p.rotY ? solid.rotate((p.rotY * 180) / Math.PI, [0, 0, 0], [0, 1, 0]) : solid;
     }
     case 'cylinder': {

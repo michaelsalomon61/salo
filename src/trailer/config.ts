@@ -8,6 +8,40 @@
 
 /** Auswahllisten mit Anzeigenamen, gemeinsam genutzt von Bedienung und Zusammenfassung. */
 export const OPTIONS = {
+  body: [
+    { id: 'platform', name: 'Plattform' },
+    { id: 'lowbed', name: 'Tieflader' },
+    { id: 'longload', name: 'Langmaterial' },
+  ],
+  rearWheels: [
+    { id: 'inside', name: 'Innen laufend' },
+    { id: 'outside', name: 'Außen laufend' },
+  ],
+  ramp: [
+    { id: 'none', name: 'Ohne' },
+    { id: 'side', name: 'Seitlich' },
+    { id: 'rear', name: 'Hinten' },
+  ],
+  rasterMm: [
+    { id: 250, name: '250 mm' },
+    { id: 500, name: '500 mm' },
+    { id: 1000, name: '1.000 mm' },
+  ],
+  roof: [
+    { id: 'none', name: 'Ohne' },
+    { id: 'tarp', name: 'Plane' },
+    { id: 'sheet', name: 'Dachblech' },
+  ],
+  roofShape: [
+    { id: 'flat', name: 'Flachdach' },
+    { id: 'mono', name: 'Pultdach' },
+  ],
+  roofSides: [
+    { id: 'open', name: 'Offen' },
+    { id: 'tarp', name: 'Plane fest' },
+    { id: 'curtain', name: 'Vorhangplane' },
+    { id: 'mesh', name: 'Schutzgitter' },
+  ],
   site: [
     { id: 'indoor', name: 'Innerbetrieblich' },
     { id: 'outdoor', name: 'Außerbetrieblich' },
@@ -103,6 +137,13 @@ export const OPTIONS = {
 
 type OptionId<K extends keyof typeof OPTIONS> = (typeof OPTIONS)[K][number]['id'];
 
+export type Body = OptionId<'body'>;
+export type RearWheels = OptionId<'rearWheels'>;
+export type Ramp = OptionId<'ramp'>;
+export type Raster = OptionId<'rasterMm'>;
+export type Roof = OptionId<'roof'>;
+export type RoofShape = OptionId<'roofShape'>;
+export type RoofSides = OptionId<'roofSides'>;
 export type Site = OptionId<'site'>;
 export type Ground = OptionId<'ground'>;
 export type LoadType = OptionId<'loadType'>;
@@ -132,6 +173,25 @@ export interface TrailerConfig {
   lengthMm: number;
   widthMm: number;
   deckHeightMm: number;
+
+  // Bauform
+  body: Body;
+  /** Tieflader: Ladehöhe des Tiefbetts. */
+  bedHeightMm: number;
+  /** Tieflader: Hinterräder unter einem Podest (innen) oder neben dem Tiefbett (außen). */
+  rearWheels: RearWheels;
+  ramp: Ramp;
+  /** Langmaterial: kürzeste und längste einstellbare Länge sowie das Raster dazwischen. */
+  minLengthMm: number;
+  maxLengthMm: number;
+  rasterMm: Raster;
+
+  // Dachaufbau
+  roof: Roof;
+  roofShape: RoofShape;
+  /** Lichte Höhe unter dem Dach. */
+  roofClearMm: number;
+  roofSides: RoofSides;
 
   // Einsatz
   speedKmh: number;
@@ -202,6 +262,8 @@ export const LIMITS = {
   widthMm: { min: 1200, max: 3000, step: 50 },
   deckHeightMm: { min: 400, max: 1800, step: 10 },
   steeringDeg: { min: -60, max: 60, step: 1 },
+  bedHeightMm: { min: 180, max: 800, step: 10 },
+  roofClearMm: { min: 1000, max: 2600, step: 50 },
   speedKmh: { min: 2, max: 40, step: 1 },
   slopePct: { min: 0, max: 15, step: 1 },
   obstacleMm: { min: 0, max: 150, step: 5 },
@@ -228,6 +290,19 @@ export const DEFAULT_CONFIG: TrailerConfig = {
   lengthMm: 6000,
   widthMm: 2500,
   deckHeightMm: 950,
+
+  body: 'platform',
+  bedHeightMm: 350,
+  rearWheels: 'inside',
+  ramp: 'none',
+  minLengthMm: 5000,
+  maxLengthMm: 8000,
+  rasterMm: 500,
+
+  roof: 'none',
+  roofShape: 'flat',
+  roofClearMm: 1800,
+  roofSides: 'open',
 
   speedKmh: 6,
   site: 'indoor',
@@ -365,7 +440,17 @@ export interface Derived {
   minDeckHeightMm: number;
 }
 
-export type AdjustedField = 'axles' | 'lengthMm' | 'widthMm' | 'deckHeightMm' | 'steeringDeg';
+export type AdjustedField =
+  | 'axles'
+  | 'lengthMm'
+  | 'widthMm'
+  | 'deckHeightMm'
+  | 'steeringDeg'
+  | 'bedHeightMm'
+  | 'rearWheels'
+  | 'ramp'
+  | 'minLengthMm'
+  | 'maxLengthMm';
 
 export interface Resolved {
   config: TrailerConfig;
@@ -398,6 +483,14 @@ export function minAxlesFor(payloadT: number): number {
 /** Länge einer Achsgruppe von Radvorderkante bis Radhinterkante. */
 const groupLength = (count: number, spacingMm: number, wheelMm: number) =>
   (count - 1) * spacingMm + wheelMm;
+
+/** Langmaterial: Länge eines Fahrgestellmoduls über einer Achsgruppe in mm. */
+export const moduleLengthMm = (d: Pick<Derived, 'frontAxles' | 'rearAxles' | 'axleSpacingMm' | 'wheelDiameterMm'>) =>
+  groupLength(Math.max(d.frontAxles, d.rearAxles), d.axleSpacingMm, d.wheelDiameterMm) + 600;
+
+/** Tieflader außen laufend: Breite eines Radkastens neben dem Tiefbett in mm. */
+export const wheelHouseMm = (d: Pick<Derived, 'axleType' | 'wheelWidthMm'>) =>
+  d.axleType === 'pendel' ? 2 * d.wheelWidthMm + 240 : d.wheelWidthMm + 160;
 
 /** Belag aus Holz oder Platten, an dessen Rand ein Kantenschutz sitzen kann. */
 export const hasBoardDeck = (deck: DeckMaterial) => deck === 'pine' || deck === 'hardwood' || deck === 'plywood';
@@ -434,19 +527,24 @@ export function computeDerived(c: TrailerConfig): Derived {
   const frontAxles = c.axles === 4 ? 2 : 1;
   const rearAxles = c.axles - frontAxles;
 
+  // Der Tieflader braucht zwischen den Achsgruppen zusätzlich Platz für das Tiefbett.
   const minLengthMm = clamp(
     ceilTo(
       groupLength(frontAxles, axleSpacingMm, wheelDiameterMm) +
         groupLength(rearAxles, axleSpacingMm, wheelDiameterMm) +
-        500,
+        (c.body === 'lowbed' ? 2450 : 500),
       LIMITS.lengthMm.step,
     ),
     LIMITS.lengthMm.min,
     LIMITS.lengthMm.max,
   );
+  // Außen laufende Hinterräder lassen ein Tiefbett von mindestens 800 mm Breite zwischen den Radkästen.
   const minWidthMm = clamp(
     ceilTo(
-      axleType === 'pendel' ? 2 * (2 * wheelWidthMm + 100) + 360 : 2 * wheelWidthMm + 700,
+      Math.max(
+        axleType === 'pendel' ? 2 * (2 * wheelWidthMm + 100) + 360 : 2 * wheelWidthMm + 700,
+        c.body === 'lowbed' && c.rearWheels === 'outside' ? 2 * wheelHouseMm({ axleType, wheelWidthMm }) + 800 : 0,
+      ),
       LIMITS.widthMm.step,
     ),
     LIMITS.widthMm.min,
@@ -506,8 +604,26 @@ export function resolve(requested: TrailerConfig): Resolved {
     trailersInTrain: limit('trailersInTrain', requested.trailersInTrain),
     // Ein Kantenschutz setzt einen Belag aus Holz oder Platten voraus.
     edgeProtection: hasBoardDeck(requested.deck) ? requested.edgeProtection : 'none',
+    roofClearMm: limit('roofClearMm', requested.roofClearMm),
   };
   const adjustments: Resolved['adjustments'] = {};
+
+  // Bordwände, Kantenschutz und Dachaufbau gibt es nur auf der durchgehenden Plattform.
+  if (c.body !== 'platform') {
+    c.wallType = 'none';
+    c.roof = 'none';
+    c.edgeProtection = 'none';
+  }
+  if (c.body === 'lowbed') {
+    if (c.rearWheels === 'outside' && STEERING[c.steering].rear !== 'fixed') {
+      c.rearWheels = 'inside';
+      adjustments.rearWheels = 'Gelenkte Hinterachsen laufen innen unter einem Podest.';
+    }
+    if (c.ramp === 'rear' && c.rearWheels === 'inside') {
+      c.ramp = 'none';
+      adjustments.ramp = 'Eine Auffahrklappe hinten setzt außen laufende Hinterräder voraus.';
+    }
+  }
 
   // Eingeschlagen läge das Gelenk unter der Ladefläche, die Deichsel könnte nicht hochklappen.
   if (c.drawbarUp && c.steeringDeg !== 0) {
@@ -543,6 +659,32 @@ export function resolve(requested: TrailerConfig): Resolved {
     derived = computeDerived(c);
   }
 
+  if (c.body === 'lowbed') {
+    // Das Tiefbett liegt spürbar unter den Podesten und hat noch Bodenfreiheit.
+    const bed = clamp(roundTo(c.bedHeightMm, 10), LIMITS.bedHeightMm.min, Math.min(LIMITS.bedHeightMm.max, c.deckHeightMm - 200));
+    if (bed !== c.bedHeightMm) {
+      if (bed < c.bedHeightMm) adjustments.bedHeightMm = 'Das Tiefbett liegt mindestens 200 mm unter den Podesten.';
+      c.bedHeightMm = bed;
+    }
+  }
+
+  if (c.body === 'longload') {
+    // Das Langrohr verbindet zwei Fahrgestellmodule; ausziehen lässt es sich höchstens um seine nutzbare Länge.
+    const raster = c.rasterMm;
+    const module = moduleLengthMm(derived);
+    const shortest = ceilTo(2 * module + 1500, 100);
+    const min = clamp(roundTo(c.minLengthMm, 100), shortest, LIMITS.lengthMm.max);
+    if (min !== c.minLengthMm) adjustments.minLengthMm = 'Auf die kürzeste Länge für zwei Fahrgestellmodule angehoben.';
+    c.minLengthMm = min;
+    const reachMm = Math.floor((min - 2 * module - 600) / raster) * raster;
+    const longest = Math.min(LIMITS.lengthMm.max, min + Math.max(0, reachMm));
+    const max = clamp(min + Math.round((c.maxLengthMm - min) / raster) * raster, min, longest);
+    if (max < c.maxLengthMm) adjustments.maxLengthMm = 'Auf den Auszug begrenzt, den das Langrohr bei dieser Mindestlänge zulässt.';
+    c.maxLengthMm = max;
+    c.lengthMm = clamp(min + Math.round((c.lengthMm - min) / raster) * raster, min, max);
+    derived = computeDerived(c);
+  }
+
   // Die Last passt höchstens auf die Ladefläche.
   c.loadLengthMm = clamp(roundTo(c.loadLengthMm, 100), LIMITS.loadLengthMm.min, c.lengthMm);
   c.loadWidthMm = clamp(roundTo(c.loadWidthMm, 50), LIMITS.loadWidthMm.min, c.widthMm);
@@ -562,8 +704,10 @@ export interface AxleLayout {
 export function axleLayout(c: TrailerConfig, d: Derived): AxleLayout {
   const frontLen = groupLength(d.frontAxles, d.axleSpacingMm, d.wheelDiameterMm);
   const rearLen = groupLength(d.rearAxles, d.axleSpacingMm, d.wheelDiameterMm);
-  const frontOffset = Math.max(frontLen / 2 + 150, Math.min(0.13 * c.lengthMm, 900));
-  const rearOffset = Math.max(rearLen / 2 + 150, Math.min(0.16 * c.lengthMm, 1400));
+  // Beim Langmaterial-Anhänger sitzt jede Achsgruppe mittig unter ihrem Fahrgestellmodul.
+  const centered = c.body === 'longload' ? moduleLengthMm(d) / 2 : 0;
+  const frontOffset = centered || Math.max(frontLen / 2 + 150, Math.min(0.13 * c.lengthMm, 900));
+  const rearOffset = centered || Math.max(rearLen / 2 + 150, Math.min(0.16 * c.lengthMm, 1400));
   const frontCenterMm = c.lengthMm / 2 - frontOffset;
   const rearCenterMm = -c.lengthMm / 2 + rearOffset;
   const spread = (center: number, count: number) =>

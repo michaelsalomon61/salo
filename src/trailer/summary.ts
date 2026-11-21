@@ -1,6 +1,7 @@
 /** Alle Angaben der Konfiguration als lesbare Liste, für Anzeige und Export. */
 import { performance } from './advice';
 import { COLORS, hasBoardDeck, optionName, type Derived, type TrailerConfig } from './config';
+import type { TrailerParts } from './parts';
 
 export interface SummarySection {
   title: string;
@@ -12,7 +13,13 @@ const mm = (v: number) => `${nf.format(v)} mm`;
 const yesNo = (v: boolean) => (v ? 'Ja' : 'Nein');
 const optional = (v: number | null, unit: string) => (v === null ? 'Keine Angabe' : `${nf.format(v)} ${unit}`);
 
-export function describeConfig(c: TrailerConfig, d: Derived, tareKg: number, pieceCount: number): SummarySection[] {
+export function describeConfig(
+  c: TrailerConfig,
+  d: Derived,
+  description: Pick<TrailerParts, 'bed' | 'height'>,
+  tareKg: number,
+  pieceCount: number,
+): SummarySection[] {
   const color = COLORS.find((x) => x.id === c.colorId) ?? COLORS[0];
   const p = performance(c, d, tareKg);
 
@@ -28,16 +35,36 @@ export function describeConfig(c: TrailerConfig, d: Derived, tareKg: number, pie
   }
   deck.push(['Verzurrösen', yesNo(c.lashingRings)]);
 
+  const body: SummarySection['items'] = [['Bauform', optionName('body', c.body)]];
+  if (c.body === 'lowbed') {
+    body.push(['Ladehöhe Tiefbett', mm(c.bedHeightMm)], ['Hinterräder', optionName('rearWheels', c.rearWheels)], ['Auffahrklappe', optionName('ramp', c.ramp)]);
+    if (description.bed) {
+      body.push(['Tiefbett (L × B)', `${mm(Math.round(description.bed.length * 100) * 10)} × ${mm(Math.round(description.bed.width * 100) * 10)}`]);
+    }
+  } else if (c.body === 'longload') {
+    body.push(['Mindestlänge', mm(c.minLengthMm)], ['Maximallänge', mm(c.maxLengthMm)], ['Längenrasterung', mm(c.rasterMm)]);
+  } else {
+    body.push(['Dachaufbau', optionName('roof', c.roof)]);
+    if (c.roof !== 'none') {
+      body.push(
+        ['Dachform', optionName('roofShape', c.roofShape)],
+        ['Lichte Höhe', mm(c.roofClearMm)],
+        ['Seiten', optionName('roofSides', c.roofSides)],
+      );
+    }
+  }
+
   return [
     {
       title: 'Grunddaten',
       items: [
         ['Nutzlast', `${c.payloadT} t`],
-        ['Ladefläche (L × B)', `${mm(c.lengthMm)} × ${mm(c.widthMm)}`],
-        ['Ladehöhe', mm(c.deckHeightMm)],
+        [c.body === 'longload' ? 'Eingestellte Länge × Breite' : 'Ladefläche (L × B)', `${mm(c.lengthMm)} × ${mm(c.widthMm)}`],
+        [c.body === 'lowbed' ? 'Höhe über den Achsen' : 'Ladehöhe', mm(c.deckHeightMm)],
         ['Achsen', `${c.axles} × ${d.axleType === 'pendel' ? 'Pendelachse' : 'Starrachse'}`],
       ],
     },
+    { title: 'Bauform', items: body },
     {
       title: 'Einsatz',
       items: [
@@ -99,6 +126,7 @@ export function describeConfig(c: TrailerConfig, d: Derived, tareKg: number, pie
         ['Radlast', `ca. ${nf.format(p.wheelLoadKg)} kg`],
         ['Zugkraftbedarf', `ca. ${nf.format(p.pullN)} N`],
         ['Rahmenhöhe', mm(d.frameHeightMm)],
+        ['Gesamthöhe', mm(Math.round(description.height * 100) * 10)],
         ['Einzelteile', nf.format(pieceCount)],
       ],
     },
