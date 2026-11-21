@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { deleteSaved, importSaved, listSaved, loadDraft, saveConfig, saveDraft, type SavedConfig } from './storage/saved';
+import { decodeShare, shareUrl } from './storage/share';
 import { advise, performance } from './trailer/advice';
 import { buildBom } from './trailer/bom';
 import { COLORS, DEFAULT_CONFIG, LIMITS, OPTIONS, STEERING, hasBoardDeck, optionName, resolve, type TrailerConfig } from './trailer/config';
@@ -11,6 +12,7 @@ import { Chips, Field, NumberField, Section, Segmented, Slider, Switch, TextArea
 import { saveBlob } from './ui/download';
 import { QuoteDialog } from './ui/QuoteDialog';
 import { SavedDialog } from './ui/SavedDialog';
+import { ShareDialog } from './ui/ShareDialog';
 import { SummaryDialog } from './ui/SummaryDialog';
 import { Viewer } from './viewer/Viewer';
 
@@ -21,12 +23,22 @@ const steeringText = (deg: number) => (deg === 0 ? 'Geradeaus' : `${Math.abs(deg
 
 export function App() {
   // Gewünschte Werte; das Regelwerk leitet daraus die baubare Konfiguration ab.
-  // Der Arbeitsstand der letzten Sitzung wird beim Öffnen wiederhergestellt.
+  // Ein geteilter Link hat Vorrang; sonst wird der Arbeitsstand der letzten Sitzung wiederhergestellt.
+  const [shared] = useState(() => decodeShare(window.location.hash));
   const [draft] = useState(loadDraft);
-  const [requested, setRequested] = useState<TrailerConfig>(draft?.config ?? DEFAULT_CONFIG);
+  const [requested, setRequested] = useState<TrailerConfig>(shared?.config ?? draft?.config ?? DEFAULT_CONFIG);
   const [saved, setSaved] = useState<SavedConfig[]>(listSaved);
-  const [currentId, setCurrentId] = useState<string | null>(draft?.currentId ?? null);
-  const [saveStatus, setSaveStatus] = useState<string | null>(null);
+  const [currentId, setCurrentId] = useState<string | null>(shared ? null : (draft?.currentId ?? null));
+  const [saveStatus, setSaveStatus] = useState<string | null>(
+    shared ? (shared.name ? `Aus Link geöffnet: „${shared.name}“` : 'Aus Link geöffnet') : null,
+  );
+  /** Name aus dem geteilten Link, als Vorschlag beim Speichern. */
+  const [linkName, setLinkName] = useState<string | null>(shared?.name ?? null);
+
+  useEffect(() => {
+    // Die Konfiguration aus dem Link ist übernommen; ohne Anhang überschreibt ein Neuladen keine Änderungen.
+    if (shared) window.history.replaceState(null, '', window.location.pathname + window.location.search);
+  }, [shared]);
   const current = saved.find((e) => e.id === currentId) ?? null;
   const unsaved = current ? JSON.stringify(current.config) !== JSON.stringify(requested) : true;
 
@@ -35,7 +47,7 @@ export function App() {
   }, [requested, currentId]);
   const [showDimensions, setShowDimensions] = useState(true);
   const [resetSignal, setResetSignal] = useState(0);
-  const [dialog, setDialog] = useState<'summary' | 'bom' | 'saved' | 'quote' | null>(null);
+  const [dialog, setDialog] = useState<'summary' | 'bom' | 'saved' | 'saveAs' | 'share' | 'quote' | null>(null);
   const closeDialog = useCallback(() => setDialog(null), []);
   const [step, setStep] = useState<'idle' | 'working' | 'failed'>('idle');
 
@@ -51,6 +63,7 @@ export function App() {
       const result = saveConfig(name, requested);
       setSaved(result.list);
       setCurrentId(result.entry.id);
+      setLinkName(null);
       setSaveStatus('Gespeichert');
       return null;
     } catch {
@@ -58,7 +71,7 @@ export function App() {
     }
   };
   const quickSave = () => {
-    if (!current) return setDialog('saved');
+    if (!current) return setDialog('saveAs');
     const error = save(current.name);
     if (error) setSaveStatus(error);
   };
@@ -138,12 +151,20 @@ export function App() {
                 {saveStatus ?? (current ? (unsaved ? 'Ungespeicherte Änderungen' : 'Alle Änderungen gespeichert') : 'Noch ohne Namen')}
               </p>
             </div>
-            <button type="button" id="quick-save" className="button" disabled={!!current && !unsaved} onClick={quickSave}>
-              Speichern
-            </button>
-            <button type="button" id="open-saved" className="button" onClick={() => setDialog('saved')}>
-              Konfigurationen{saved.length > 0 ? ` (${saved.length})` : ''}
-            </button>
+            <div className="save-buttons">
+              <button type="button" id="quick-save" className="button" disabled={!!current && !unsaved} onClick={quickSave}>
+                Speichern
+              </button>
+              <button type="button" id="save-as" className="button" onClick={() => setDialog('saveAs')}>
+                Speichern unter …
+              </button>
+              <button type="button" id="open-share" className="button" onClick={() => setDialog('share')}>
+                Link teilen
+              </button>
+              <button type="button" id="open-saved" className="button" onClick={() => setDialog('saved')}>
+                Gespeicherte{saved.length > 0 ? ` (${saved.length})` : ''}
+              </button>
+            </div>
           </div>
         </header>
 
@@ -354,15 +375,20 @@ export function App() {
       </aside>
 
       {dialog === 'bom' && <BomDialog bom={bom} summary={summary} fileBase={fileBase} onClose={closeDialog} />}
-      {dialog === 'saved' && (
+      {dialog === 'share' && (
+        <ShareDialog url={shareUrl(requested, current?.name ?? linkName, window.location.href)} title={current?.name ?? headline} onClose={closeDialog} />
+      )}
+      {(dialog === 'saved' || dialog === 'saveAs') && (
         <SavedDialog
           saved={saved}
           currentId={currentId}
-          suggestedName={`${optionName('body', config.body)} ${config.payloadT} t, ${nf.format(config.lengthMm)} × ${nf.format(config.widthMm)}`}
+          saveAs={dialog === 'saveAs'}
+          suggestedName={linkName ?? `${optionName('body', config.body)} ${config.payloadT} t, ${nf.format(config.lengthMm)} × ${nf.format(config.widthMm)}`}
           onSave={save}
           onLoad={(entry) => {
             setRequested(entry.config);
             setCurrentId(entry.id);
+            setLinkName(null);
             setSaveStatus(null);
             setDialog(null);
           }}
@@ -386,6 +412,7 @@ export function App() {
           onNew={() => {
             setRequested(DEFAULT_CONFIG);
             setCurrentId(null);
+            setLinkName(null);
             setSaveStatus(null);
             setDialog(null);
           }}

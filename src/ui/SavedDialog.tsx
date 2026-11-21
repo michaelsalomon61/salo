@@ -1,4 +1,4 @@
-import { useRef, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { exportSaved, findByName, type SavedConfig } from '../storage/saved';
 import { optionName, type TrailerConfig } from '../trailer/config';
 import { Dialog } from './Dialog';
@@ -10,6 +10,8 @@ interface Props {
   currentId: string | null;
   /** Vorschlag für den Namen einer neuen Konfiguration. */
   suggestedName: string;
+  /** Unter neuem Namen speichern: das Namensfeld ist vorbelegt und ausgewählt. */
+  saveAs?: boolean;
   /** Speichert die aktuelle Konfiguration; liefert eine Fehlermeldung, wenn es nicht klappt. */
   onSave: (name: string) => string | null;
   onLoad: (entry: SavedConfig) => void;
@@ -26,9 +28,23 @@ const nf = new Intl.NumberFormat('de-DE');
 const describe = (c: TrailerConfig) =>
   `${optionName('body', c.body)}, ${c.payloadT} t, ${nf.format(c.lengthMm)} × ${nf.format(c.widthMm)} mm, ${optionName('steering', c.steering)}`;
 
-export function SavedDialog({ saved, currentId, suggestedName, onSave, onLoad, onDelete, onImport, onNew, onClose }: Props) {
+export function SavedDialog({ saved, currentId, suggestedName, saveAs, onSave, onLoad, onDelete, onImport, onNew, onClose }: Props) {
   const current = saved.find((e) => e.id === currentId);
-  const [name, setName] = useState(current?.name ?? suggestedName);
+  const [name, setName] = useState(() => {
+    if (!saveAs) return current?.name ?? suggestedName;
+    // Vorschlag, der noch nicht vergeben ist.
+    const base = current ? `${current.name} (Kopie)` : suggestedName;
+    let candidate = base;
+    for (let i = 2; findByName(saved, candidate); i++) candidate = `${base} ${i}`;
+    return candidate;
+  });
+  const nameRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (saveAs) {
+      nameRef.current?.focus();
+      nameRef.current?.select();
+    }
+  }, [saveAs]);
   const [message, setMessage] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -55,14 +71,14 @@ export function SavedDialog({ saved, currentId, suggestedName, onSave, onLoad, o
           <label className="field-label" htmlFor="save-name">
             Name der aktuellen Konfiguration
           </label>
-          <input id="save-name" type="text" value={name} maxLength={80} autoComplete="off" onChange={(e) => setName(e.target.value)} />
+          <input id="save-name" ref={nameRef} type="text" value={name} maxLength={80} autoComplete="off" onChange={(e) => setName(e.target.value)} />
         </div>
         <button type="submit" id="save-submit" className="button primary" disabled={!trimmed}>
           {existing ? 'Überschreiben' : 'Speichern'}
         </button>
       </form>
       <p className="status" aria-live="polite">
-        {message ?? (existing ? `Unter „${existing.name}“ ist bereits eine Konfiguration gespeichert. Speichern ersetzt sie.` : 'Ein neuer Name legt einen neuen Eintrag an.')}
+        {message ?? (existing ? `Unter „${existing.name}“ ist bereits eine Konfiguration gespeichert. Speichern ersetzt sie.` : 'Dieser Name ist neu: Speichern legt einen weiteren Eintrag an, die anderen bleiben erhalten.')}
       </p>
 
       {saved.length === 0 ? (

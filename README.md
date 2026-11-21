@@ -9,7 +9,8 @@ Lackierung und Eckdaten des Zugfahrzeugs. Ausstattung erscheint im Modell, in de
 STEP-Export; Einsatzdaten fließen in Kennwerte und Hinweise ein.
 
 Konfigurationen lassen sich unter einem Namen im Browser speichern, wieder laden, ändern und löschen sowie
-als Datei sichern und auf einem anderen Gerät einlesen.
+als Datei sichern und auf einem anderen Gerät einlesen. Über „Link teilen" entsteht ein Link, der die
+Konfiguration selbst enthält: Jeder mit dem Link kann sie öffnen, ohne Konto und ohne Server.
 
 Aus der fertigen Konfiguration lassen sich vier Ergebnisse erzeugen:
 
@@ -50,6 +51,7 @@ npm run dev
 - `src/trailer/summary.ts`: die Konfiguration als lesbare Liste und als Kurzbeschreibung.
 - `src/trailer/pricing.ts`: Preismodell auf Schätzbasis (Sätze je Kilogramm, Stückpreise, Zuschläge).
 - `src/storage/saved.ts`: gespeicherte Konfigurationen im lokalen Speicher des Browsers.
+- `src/storage/share.ts`: Konfiguration als Link (Abweichungen vom Standard, kodiert hinter dem #-Zeichen).
 - `src/trailer/parts.ts`: beschreibt jedes Bauteil einmal (Form, Lage, Werkstoff). Modell, Stückliste und
   STEP-Export lesen alle aus dieser Liste und bleiben dadurch deckungsgleich.
 - `src/trailer/buildTrailer.ts`: baut daraus das 3D-Modell.
