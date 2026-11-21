@@ -24,18 +24,21 @@ function tiling(c: HTMLCanvasElement, color: boolean) {
   return t;
 }
 
-/** Maserung für Hartholzbohlen: fünf Streifen, je einer pro Bohle, 1 m lang. */
-export function woodTexture(): THREE.CanvasTexture {
+/** Maserung für Holzbohlen: fünf Streifen, je einer pro Bohle, 1 m lang. */
+export function woodTexture(kind: 'hardwood' | 'pine'): THREE.CanvasTexture {
+  const pine = kind === 'pine';
   const size = 512;
   const { c, g } = canvas(size, size);
   const rnd = seeded(7);
   const planks = 5;
   const ph = size / planks;
   for (let i = 0; i < planks; i++) {
-    g.fillStyle = `hsl(${26 + rnd() * 6}, ${34 + rnd() * 8}%, ${40 + rnd() * 9}%)`;
+    g.fillStyle = pine
+      ? `hsl(${36 + rnd() * 6}, ${46 + rnd() * 8}%, ${64 + rnd() * 7}%)`
+      : `hsl(${26 + rnd() * 6}, ${34 + rnd() * 8}%, ${40 + rnd() * 9}%)`;
     g.fillRect(0, i * ph, size, ph);
     for (let k = 0; k < 34; k++) {
-      g.fillStyle = `rgba(52, 30, 12, ${0.05 + rnd() * 0.13})`;
+      g.fillStyle = pine ? `rgba(120, 78, 30, ${0.05 + rnd() * 0.12})` : `rgba(52, 30, 12, ${0.05 + rnd() * 0.13})`;
       g.fillRect(0, i * ph + rnd() * ph, size, 1 + rnd() * 1.5);
     }
   }
@@ -105,6 +108,17 @@ export function rubberNormalTexture(): THREE.CanvasTexture {
   g.filter = 'blur(3px)';
   g.drawImage(c, 0, 0);
   return normalMapFrom(c, 1.5);
+}
+
+/** Drahtgitter mit durchsichtigen Maschen; eine Kachel entspricht einer Masche von 50 mm. */
+export function meshTexture(): THREE.CanvasTexture {
+  const size = 64;
+  const { c, g } = canvas(size, size);
+  g.clearRect(0, 0, size, size);
+  g.fillStyle = '#9a9ea4';
+  g.fillRect(0, 0, size, 7);
+  g.fillRect(0, 0, 7, size);
+  return tiling(c, true);
 }
 
 /** Traglastangabe wie am Fahrzeug aufgebracht, auf transparentem Grund. */

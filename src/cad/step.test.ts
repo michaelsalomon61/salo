@@ -28,12 +28,29 @@ describe('STEP-Export', () => {
     expect(max[2]).toBeCloseTo(config.deckHeightMm, 0);
 
     // Räder stehen auf dem Boden.
-    const wheel = solids.find((s) => s.name.startsWith('Vollgummirad'))!;
+    const wheel = solids.find((s) => s.name.startsWith('Rad '))!;
     expect(wheel.shape.boundingBox.bounds[0][2]).toBeCloseTo(0, 0);
 
     const text = await buildStepBlob(replicad, config, derived).text();
     expect(text.startsWith('ISO-10303-21;')).toBe(true);
     expect(text.match(/MANIFOLD_SOLID_BREP/g)).toHaveLength(parts.length);
     expect(text).toContain("'Deckblech 1'");
+  }, 120_000);
+
+  it('erzeugt auch bei Vollausstattung für jedes Bauteil einen gültigen Körper', () => {
+    const { config, derived } = resolve({
+      ...DEFAULT_CONFIG,
+      brake: 'air', parkingBrake: true, suspension: 'air', tyre: 'pneumatic', deck: 'pine', edgeProtection: 'raised',
+      wallType: 'folding', wallMaterial: 'mesh', wallHeightMm: 400, lashingRings: true, towEye: 'flat', drawbarSpring: true,
+      rearCoupling: 'pin', lighting: 'stvzo', chocks: 'double',
+    });
+    const parts = trailerParts(config, derived).parts;
+    const solids = buildStepParts(replicad, config, derived);
+    expect(solids).toHaveLength(parts.length);
+    for (const s of solids) {
+      const [min, max] = s.shape.boundingBox.bounds;
+      expect([...min, ...max].every(Number.isFinite), s.name).toBe(true);
+      expect(replicad.measureVolume(s.shape), s.name).toBeGreaterThan(0);
+    }
   }, 120_000);
 });

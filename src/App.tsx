@@ -1,17 +1,13 @@
-import { useCallback, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import { advise, performance } from './trailer/advice';
 import { buildBom } from './trailer/bom';
-import {
-  COLORS,
-  DECKS,
-  DEFAULT_CONFIG,
-  LIMITS,
-  resolve,
-  type DeckMaterial,
-  type TrailerConfig,
-} from './trailer/config';
+import { COLORS, DEFAULT_CONFIG, LIMITS, OPTIONS, hasBoardDeck, optionName, resolve, type TrailerConfig } from './trailer/config';
 import { trailerParts } from './trailer/parts';
+import { describeConfig } from './trailer/summary';
 import { BomDialog } from './ui/BomDialog';
+import { Chips, Field, NumberField, Section, Segmented, Slider, Switch, TextArea } from './ui/controls';
 import { saveBlob } from './ui/download';
+import { SummaryDialog } from './ui/SummaryDialog';
 import { Viewer } from './viewer/Viewer';
 
 const nf = new Intl.NumberFormat('de-DE');
@@ -24,23 +20,22 @@ export function App() {
   const [requested, setRequested] = useState<TrailerConfig>(DEFAULT_CONFIG);
   const [showDimensions, setShowDimensions] = useState(true);
   const [resetSignal, setResetSignal] = useState(0);
+  const [dialog, setDialog] = useState<'summary' | 'bom' | null>(null);
+  const closeDialog = useCallback(() => setDialog(null), []);
+  const [step, setStep] = useState<'idle' | 'working' | 'failed'>('idle');
 
   const { config, derived, adjustments } = useMemo(() => resolve(requested), [requested]);
   const set = <K extends keyof TrailerConfig>(key: K, value: TrailerConfig[K]) =>
     setRequested((current) => ({ ...current, [key]: value }));
 
-  const color = COLORS.find((c) => c.id === config.colorId) ?? COLORS[0];
-  const deck = DECKS.find((d) => d.id === config.deck) ?? DECKS[0];
-
-  // Die Stückliste liefert auch das Eigengewicht für die Kennwerte.
+  // Die Stückliste liefert auch das Eigengewicht für Kennwerte und Hinweise.
   const bom = useMemo(() => buildBom(trailerParts(config, derived).parts), [config, derived]);
-  const grossKg = config.payloadT * 1000 + bom.totalKg;
+  const perf = performance(config, derived, bom.totalKg);
+  const notices = useMemo(() => advise(config, derived, bom.totalKg), [config, derived, bom]);
 
-  const [bomOpen, setBomOpen] = useState(false);
-  const closeBom = useCallback(() => setBomOpen(false), []);
-  const [step, setStep] = useState<'idle' | 'working' | 'failed'>('idle');
-
-  const summary = `${config.payloadT} t Traglast, ${config.axles} Achsen, ${mm(config.lengthMm)} × ${mm(config.widthMm)}, Ladehöhe ${mm(config.deckHeightMm)}, ${deck.name}, ${color.ral} ${color.name}`;
+  const color = COLORS.find((c) => c.id === config.colorId) ?? COLORS[0];
+  const headline = `${config.payloadT} t Traglast, ${config.axles} Achsen, ${mm(config.lengthMm)} × ${mm(config.widthMm)}`;
+  const summary = `${headline}, Ladehöhe ${mm(config.deckHeightMm)}, ${optionName('deck', config.deck)}, ${color.ral} ${color.name}`;
   const fileBase = `anhaenger-${config.payloadT}t-${config.lengthMm}x${config.widthMm}`;
 
   const saveStep = async () => {
@@ -79,15 +74,16 @@ export function App() {
         <header className="panel-head">
           <p className="eyebrow">Konfigurator</p>
           <h1>Schwerlastanhänger</h1>
-          <p className="lede">
-            {config.payloadT} t Traglast, {config.axles} Achsen, {mm(config.lengthMm)} × {mm(config.widthMm)}
-          </p>
+          <p className="lede">{headline}</p>
           <div className="actions">
-            <button type="button" id="open-bom" className="button primary" onClick={() => setBomOpen(true)}>
+            <button type="button" id="open-summary" className="button primary" onClick={() => setDialog('summary')}>
+              Zusammenfassung
+            </button>
+            <button type="button" id="open-bom" className="button" onClick={() => setDialog('bom')}>
               Stückliste
             </button>
             <button type="button" id="save-step" className="button" disabled={step === 'working'} onClick={saveStep}>
-              {step === 'working' ? 'STEP wird erzeugt …' : 'STEP-Modell'}
+              {step === 'working' ? 'Wird erzeugt …' : 'STEP-Modell'}
             </button>
           </div>
           {step === 'failed' && (
@@ -97,224 +93,168 @@ export function App() {
           )}
         </header>
 
-        <Group title="Traglast">
-          <Slider
-            id="payload"
-            label="Nutzlast"
-            value={config.payloadT}
-            display={`${config.payloadT} t`}
-            {...LIMITS.payloadT}
-            onChange={(v) => set('payloadT', v)}
-          />
-          <Field label="Achsen" note={adjustments.axles}>
+        <div className="sections">
+          <Section title="Grunddaten" open>
+            <Slider id="payload" label="Nutzlast" value={config.payloadT} display={`${config.payloadT} t`} {...LIMITS.payloadT} onChange={(v) => set('payloadT', v)} />
             <Segmented
               id="axles"
+              label="Achsen"
               value={config.axles}
-              options={[2, 3, 4].map((n) => ({ value: n, label: String(n), disabled: n < derived.minAxles }))}
+              note={adjustments.axles}
+              options={[2, 3, 4].map((n) => ({ id: n, name: String(n), disabled: n < derived.minAxles }))}
               onChange={(v) => set('axles', v)}
             />
-          </Field>
-        </Group>
+            <Slider id="length" label="Länge" value={config.lengthMm} display={mm(config.lengthMm)} {...LIMITS.lengthMm} min={derived.minLengthMm} note={adjustments.lengthMm} onChange={(v) => set('lengthMm', v)} />
+            <Slider id="width" label="Breite" value={config.widthMm} display={mm(config.widthMm)} {...LIMITS.widthMm} min={derived.minWidthMm} note={adjustments.widthMm} onChange={(v) => set('widthMm', v)} />
+            <Slider id="deck-height" label="Ladehöhe" value={config.deckHeightMm} display={mm(config.deckHeightMm)} {...LIMITS.deckHeightMm} min={derived.minDeckHeightMm} note={adjustments.deckHeightMm} onChange={(v) => set('deckHeightMm', v)} />
+          </Section>
 
-        <Group title="Abmessungen">
-          <Slider
-            id="length"
-            label="Länge"
-            value={config.lengthMm}
-            display={mm(config.lengthMm)}
-            {...LIMITS.lengthMm}
-            min={derived.minLengthMm}
-            note={adjustments.lengthMm}
-            onChange={(v) => set('lengthMm', v)}
-          />
-          <Slider
-            id="width"
-            label="Breite"
-            value={config.widthMm}
-            display={mm(config.widthMm)}
-            {...LIMITS.widthMm}
-            min={derived.minWidthMm}
-            note={adjustments.widthMm}
-            onChange={(v) => set('widthMm', v)}
-          />
-          <Slider
-            id="deck-height"
-            label="Ladehöhe"
-            value={config.deckHeightMm}
-            display={mm(config.deckHeightMm)}
-            {...LIMITS.deckHeightMm}
-            min={derived.minDeckHeightMm}
-            note={adjustments.deckHeightMm}
-            onChange={(v) => set('deckHeightMm', v)}
-          />
-        </Group>
-
-        <Group title="Ausführung">
-          <Field label="Ladefläche">
-            <Segmented<DeckMaterial>
-              id="deck"
-              value={config.deck}
-              options={DECKS.map((d) => ({ value: d.id, label: d.name }))}
-              onChange={(v) => set('deck', v)}
-            />
-          </Field>
-          <Field label="Farbe" value={`${color.ral} ${color.name}`}>
-            <div className="swatches" role="radiogroup" aria-label="Farbe">
-              {COLORS.map((c) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  id={`color-${c.id}`}
-                  role="radio"
-                  aria-checked={c.id === config.colorId}
-                  aria-label={`${c.ral} ${c.name}`}
-                  title={`${c.ral} ${c.name}`}
-                  className="swatch"
-                  style={{ background: c.hex }}
-                  onClick={() => set('colorId', c.id)}
-                />
-              ))}
+          <Section title="Einsatz">
+            <Slider id="speed" label="Geschwindigkeit" value={config.speedKmh} display={`${config.speedKmh} km/h`} {...LIMITS.speedKmh} onChange={(v) => set('speedKmh', v)} />
+            <Segmented id="site" label="Einsatzort" value={config.site} options={OPTIONS.site} onChange={(v) => set('site', v)} />
+            <Switch id="public-roads" label="Öffentliche Verkehrswege (StVZO)" checked={config.publicRoads} onChange={(v) => set('publicRoads', v)} />
+            <Chips id="ground" label="Untergrund" value={config.ground} options={OPTIONS.ground} onChange={(v) => set('ground', v)} />
+            <Slider id="slope" label="Größte Steigung" value={config.slopePct} display={`${config.slopePct} %`} {...LIMITS.slopePct} onChange={(v) => set('slopePct', v)} />
+            <Slider id="obstacle" label="Höhe des größten Hindernisses" value={config.obstacleMm} display={mm(config.obstacleMm)} {...LIMITS.obstacleMm} onChange={(v) => set('obstacleMm', v)} />
+            <div className="number-grid">
+              <NumberField id="aisle" label="Gangbreite" unit="mm" step={50} value={config.aisleWidthMm} onChange={(v) => set('aisleWidthMm', v)} />
+              <NumberField id="curve" label="Kurvenradius" unit="mm" step={50} value={config.curveRadiusMm} onChange={(v) => set('curveRadiusMm', v)} />
+              <NumberField id="hours" label="Stunden mit Last pro Tag" unit="h" max={24} step={0.5} value={config.hoursLoadedPerDay} onChange={(v) => set('hoursLoadedPerDay', v)} />
+              <NumberField id="distance" label="Wegstrecke pro Tag" unit="km" step={0.5} value={config.distanceKmPerDay} onChange={(v) => set('distanceKmPerDay', v)} />
             </div>
-          </Field>
-          <Slider
-            id="steering"
-            label="Lenkeinschlag"
-            value={config.steeringDeg}
-            display={steeringText(config.steeringDeg)}
-            {...LIMITS.steeringDeg}
-            centered
-            disabled={config.drawbarUp}
-            note={adjustments.steeringDeg}
-            onChange={(v) => set('steeringDeg', v)}
-          />
-          <label className="switch-row" htmlFor="drawbar-up">
-            <span>Deichsel hochgeklappt</span>
-            <input
-              id="drawbar-up"
-              type="checkbox"
-              role="switch"
-              checked={config.drawbarUp}
-              onChange={(e) => set('drawbarUp', e.target.checked)}
-            />
-          </label>
-        </Group>
+          </Section>
 
-        <Group title="Kennwerte">
+          <Section title="Last">
+            <Segmented id="load-type" label="Lastart" value={config.loadType} options={OPTIONS.loadType} onChange={(v) => set('loadType', v)} />
+            {config.loadType === 'custom' ? (
+              <TextArea id="load-note" label="Beschreibung der Last" value={config.loadNote} placeholder="z. B. vier Auflagepunkte, Schwerpunkt außermittig" onChange={(v) => set('loadNote', v)} />
+            ) : (
+              <>
+                <Slider id="load-length" label="Länge der Last" value={config.loadLengthMm} display={mm(config.loadLengthMm)} {...LIMITS.loadLengthMm} max={config.lengthMm} onChange={(v) => set('loadLengthMm', v)} />
+                <Slider id="load-width" label="Breite der Last" value={config.loadWidthMm} display={mm(config.loadWidthMm)} {...LIMITS.loadWidthMm} max={config.widthMm} onChange={(v) => set('loadWidthMm', v)} />
+                <Slider id="load-height" label="Höhe der Last" value={config.loadHeightMm} display={mm(config.loadHeightMm)} {...LIMITS.loadHeightMm} onChange={(v) => set('loadHeightMm', v)} />
+                <Switch id="show-load" label="Last im Modell zeigen" checked={config.showLoad} onChange={(v) => set('showLoad', v)} />
+              </>
+            )}
+          </Section>
+
+          <Section title="Fahrwerk">
+            <Chips id="tyre" label="Bereifung" value={config.tyre} options={OPTIONS.tyre} onChange={(v) => set('tyre', v)} />
+            <Switch id="non-marking" label="Spurfreie Bereifung" checked={config.nonMarking} onChange={(v) => set('nonMarking', v)} />
+            <Chips id="suspension" label="Federung" value={config.suspension} options={OPTIONS.suspension} onChange={(v) => set('suspension', v)} />
+            <Chips id="brake" label="Betriebsbremse" value={config.brake} options={OPTIONS.brake} onChange={(v) => set('brake', v)} />
+            <Switch id="parking-brake" label="Feststellbremse" checked={config.parkingBrake} onChange={(v) => set('parkingBrake', v)} />
+          </Section>
+
+          <Section title="Ladefläche">
+            <Chips id="deck" label="Belag" value={config.deck} options={OPTIONS.deck} onChange={(v) => set('deck', v)} />
+            {hasBoardDeck(config.deck) && (
+              <Segmented id="edge" label="Kantenschutz" value={config.edgeProtection} options={OPTIONS.edgeProtection} onChange={(v) => set('edgeProtection', v)} />
+            )}
+            <Segmented id="wall-type" label="Bordwände" value={config.wallType} options={OPTIONS.wallType} onChange={(v) => set('wallType', v)} />
+            {config.wallType !== 'none' && (
+              <>
+                <Segmented id="wall-material" label="Material der Bordwände" value={config.wallMaterial} options={OPTIONS.wallMaterial} onChange={(v) => set('wallMaterial', v)} />
+                <Segmented id="wall-height" label="Höhe der Bordwände" value={config.wallHeightMm} options={OPTIONS.wallHeightMm} onChange={(v) => set('wallHeightMm', v)} />
+              </>
+            )}
+            <Switch id="lashing" label="Verzurrösen zur Ladungssicherung" checked={config.lashingRings} onChange={(v) => set('lashingRings', v)} />
+          </Section>
+
+          <Section title="Deichsel und Kupplung">
+            <Segmented id="tow-eye" label="Zugöse" value={config.towEye} options={OPTIONS.towEye} onChange={(v) => set('towEye', v)} />
+            <Switch id="drawbar-spring" label="Gefederte Höheneinstellung" checked={config.drawbarSpring} onChange={(v) => set('drawbarSpring', v)} />
+            <Slider
+              id="steering"
+              label="Lenkeinschlag"
+              value={config.steeringDeg}
+              display={steeringText(config.steeringDeg)}
+              {...LIMITS.steeringDeg}
+              centered
+              disabled={config.drawbarUp}
+              note={adjustments.steeringDeg}
+              onChange={(v) => set('steeringDeg', v)}
+            />
+            <Switch id="drawbar-up" label="Deichsel hochgeklappt" checked={config.drawbarUp} onChange={(v) => set('drawbarUp', v)} />
+            <Chips id="rear-coupling" label="Kupplung hinten" value={config.rearCoupling} options={OPTIONS.rearCoupling} onChange={(v) => set('rearCoupling', v)} />
+          </Section>
+
+          <Section title="Ausstattung">
+            <Segmented id="lighting" label="Beleuchtung" value={config.lighting} options={OPTIONS.lighting} onChange={(v) => set('lighting', v)} />
+            <Chips id="chocks" label="Unterlegkeile" value={config.chocks} options={OPTIONS.chocks} onChange={(v) => set('chocks', v)} />
+            <Field label="Lackierung" value={`${color.ral} ${color.name}`}>
+              <div className="swatches" role="radiogroup" aria-label="Lackierung">
+                {COLORS.map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    id={`color-${c.id}`}
+                    role="radio"
+                    aria-checked={c.id === config.colorId}
+                    aria-label={`${c.ral} ${c.name}`}
+                    title={`${c.ral} ${c.name}`}
+                    className="swatch"
+                    style={{ background: c.hex }}
+                    onClick={() => set('colorId', c.id)}
+                  />
+                ))}
+              </div>
+            </Field>
+          </Section>
+
+          <Section title="Zugfahrzeug">
+            <div className="number-grid">
+              <NumberField id="tow-weight" label="Gesamtgewicht" unit="kg" step={50} value={config.towWeightKg} onChange={(v) => set('towWeightKg', v)} />
+              <NumberField id="coupling-height" label="Kupplungshöhe" unit="mm" step={10} max={1500} value={config.couplingHeightMm} onChange={(v) => set('couplingHeightMm', v)} />
+              <NumberField id="tow-force" label="Zugkraft am Haken" unit="N" step={100} value={config.towForceN} onChange={(v) => set('towForceN', v)} />
+            </div>
+            <Slider id="train" label="Anhänger im Zug" value={config.trailersInTrain} display={String(config.trailersInTrain)} {...LIMITS.trailersInTrain} onChange={(v) => set('trailersInTrain', v)} />
+          </Section>
+
+          <Section title="Anmerkungen">
+            <TextArea id="notes" label="Sonstige Anforderungen und Wünsche" value={config.notes} onChange={(v) => set('notes', v)} />
+          </Section>
+        </div>
+
+        {notices.length > 0 && (
+          <section className="group" aria-label="Hinweise">
+            <h2>Hinweise</h2>
+            <ul className="notices">
+              {notices.map((n) => (
+                <li key={n}>{n}</li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        <section className="group">
+          <h2>Kennwerte</h2>
           <dl className="specs">
             <Spec term="Eigengewicht" value={`ca. ${kg(bom.totalKg)}`} />
-            <Spec term="Gesamtgewicht" value={`ca. ${kg(grossKg)}`} />
-            <Spec
-              term="Fahrwerk"
-              value={`${config.axles} × ${derived.axleType === 'pendel' ? 'Pendelachse' : 'Starrachse'}`}
-            />
-            <Spec term="Bereifung" value={`${derived.wheelCount} × Vollgummi Ø ${derived.wheelDiameterMm} mm`} />
-            <Spec term="Radlast" value={`ca. ${kg(Math.round(grossKg / derived.wheelCount / 10) * 10)}`} />
+            <Spec term="Gesamtgewicht" value={`ca. ${kg(perf.grossKg)}`} />
+            <Spec term="Fahrwerk" value={`${config.axles} × ${derived.axleType === 'pendel' ? 'Pendelachse' : 'Starrachse'}`} />
+            <Spec term="Bereifung" value={`${derived.wheelCount} × ${optionName('tyre', config.tyre)} Ø ${derived.wheelDiameterMm} mm`} />
+            <Spec term="Radlast" value={`ca. ${kg(perf.wheelLoadKg)}`} />
+            <Spec term="Zugkraftbedarf" value={`ca. ${nf.format(perf.pullN)} N`} />
             <Spec term="Rahmenhöhe" value={mm(derived.frameHeightMm)} />
             <Spec term="Einzelteile" value={nf.format(bom.pieceCount)} />
           </dl>
           <p className="footnote">
-            Anschauungsmodell. Die Kennwerte sind Schätzungen nach Faustregeln und ersetzen keine technische
+            Anschauungsmodell. Kennwerte und Hinweise sind Schätzungen nach Faustregeln und ersetzen keine technische
             Auslegung.
           </p>
-        </Group>
+        </section>
       </aside>
 
-      {bomOpen && <BomDialog bom={bom} summary={summary} fileBase={fileBase} onClose={closeBom} />}
-    </div>
-  );
-}
-
-function Group({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section className="group">
-      <h2>{title}</h2>
-      {children}
-    </section>
-  );
-}
-
-function Field({ label, value, note, children }: { label: string; value?: string; note?: string; children: ReactNode }) {
-  return (
-    <div className="field">
-      <div className="field-head">
-        <span className="field-label">{label}</span>
-        {value && <span className="field-value">{value}</span>}
-      </div>
-      {children}
-      {note && <p className="note">{note}</p>}
-    </div>
-  );
-}
-
-interface SliderProps {
-  id: string;
-  label: string;
-  value: number;
-  display: string;
-  min: number;
-  max: number;
-  step: number;
-  note?: string;
-  /** Füllung von der Mitte aus statt vom linken Rand. */
-  centered?: boolean;
-  disabled?: boolean;
-  onChange: (value: number) => void;
-}
-
-function Slider({ id, label, value, display, min, max, step, note, centered, disabled, onChange }: SliderProps) {
-  const position = max > min ? ((value - min) / (max - min)) * 100 : 0;
-  const from = centered ? Math.min(50, position) : 0;
-  const to = centered ? Math.max(50, position) : position;
-  return (
-    <div className="field">
-      <div className="field-head">
-        <label className="field-label" htmlFor={id}>
-          {label}
-        </label>
-        <output className="field-value" htmlFor={id}>
-          {display}
-        </output>
-      </div>
-      <input
-        id={id}
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        disabled={disabled}
-        className={centered ? 'centered' : undefined}
-        style={{ '--from': `${from}%`, '--to': `${to}%` } as React.CSSProperties}
-        onChange={(e) => onChange(Number(e.target.value))}
-      />
-      {note && <p className="note">{note}</p>}
-    </div>
-  );
-}
-
-interface SegmentedProps<T extends string | number> {
-  id: string;
-  value: T;
-  options: { value: T; label: string; disabled?: boolean }[];
-  onChange: (value: T) => void;
-}
-
-function Segmented<T extends string | number>({ id, value, options, onChange }: SegmentedProps<T>) {
-  return (
-    <div className="segmented" role="radiogroup" id={id}>
-      {options.map((o) => (
-        <button
-          key={o.value}
-          type="button"
-          id={`${id}-${o.value}`}
-          role="radio"
-          aria-checked={o.value === value}
-          disabled={o.disabled}
-          onClick={() => onChange(o.value)}
-        >
-          {o.label}
-        </button>
-      ))}
+      {dialog === 'bom' && <BomDialog bom={bom} summary={summary} fileBase={fileBase} onClose={closeDialog} />}
+      {dialog === 'summary' && (
+        <SummaryDialog
+          sections={describeConfig(config, derived, bom.totalKg, bom.pieceCount)}
+          notices={notices}
+          fileBase={fileBase}
+          onClose={closeDialog}
+        />
+      )}
     </div>
   );
 }

@@ -38,13 +38,15 @@ function dimensions(p: Part): string {
     case 'wheel':
       return `Ø ${mm(p.radius * 2)} × ${mm(p.width)}`;
     case 'ring':
-      return `Ø ${mm((p.radius - p.tube) * 2)} innen, Ø ${mm(p.tube * 2)} Rundstahl`;
+      return `Ø ${mm((p.radius - p.tube) * 2)} innen, Rundstahl Ø ${mm(p.tube * 2)}`;
   }
 }
 
 export function buildBom(parts: Part[]): Bom {
   const byKey = new Map<string, BomRow>();
   for (const p of parts) {
+    // Einzelteile einer Zukaufbaugruppe stehen nicht eigens in der Liste.
+    if (p.detail) continue;
     const dims = dimensions(p);
     const key = `${p.group}|${p.name}|${dims}|${p.material}`;
     const row = byKey.get(key);

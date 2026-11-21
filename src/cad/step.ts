@@ -6,18 +6,27 @@
  */
 import type * as Replicad from 'replicad';
 import { COLORS, type Derived, type TrailerConfig } from '../trailer/config';
-import { trailerParts, type Look, type Part, type Vec3 } from '../trailer/parts';
+import { TYRE_SHAPE, trailerParts, type Look, type Part, type TrailerParts, type Vec3 } from '../trailer/parts';
 
 type Kernel = typeof Replicad;
 type Solid = Replicad.Shape3D;
 
 const LOOK_COLORS: Record<Exclude<Look, 'paint'>, string> = {
   steel: '#2b2b2e',
-  tyre: '#47474a',
+  galvanized: '#b4b8be',
+  aluminium: '#d3d6da',
   checker: '#b6b9be',
-  wood: '#8a5d38',
+  hardwood: '#8a5d38',
+  pine: '#d9b77e',
+  plywood: '#3b2a21',
   rubber: '#232325',
+  mesh: '#9a9ea4',
+  yellow: '#e9b800',
+  lampRed: '#b30f14',
+  lampAmber: '#e58a00',
+  lampWhite: '#f1f1f2',
 };
+const TYRE_COLORS = { solid: '#47474a', superElastic: '#303033', pneumatic: '#1d1d1f', polyurethane: '#a5622c' };
 
 /** Meter in Millimeter; STEP-Dateien führen im Maschinenbau üblicherweise Millimeter. */
 const mm = (v: number) => v * 1000;
@@ -52,7 +61,7 @@ function solidFor(k: Kernel, p: Part): Solid {
     }
     case 'wheel': {
       // Reifen mit beidseitig vertiefter Felge und durchgehender Nabe als ein Körper.
-      const rimR = p.radius * 0.6;
+      const rimR = p.radius * TYRE_SHAPE[p.tyre].rim;
       const recess = p.width * 0.14;
       let solid: Solid = cylinder(k, p.radius, p.width, 'z');
       for (const side of [1, -1]) {
@@ -61,9 +70,21 @@ function solidFor(k: Kernel, p: Part): Solid {
       }
       return solid.fuse(cylinder(k, p.radius * 0.3, p.width * 0.9, 'z'));
     }
-    case 'ring':
-      return k.drawCircle(mm(p.tube)).translate(mm(p.radius), 0).sketchOnPlane('XY').revolve([0, 1, 0]) as Solid;
+    case 'ring': {
+      const ring = k.drawCircle(mm(p.tube)).translate(mm(p.radius), 0).sketchOnPlane('XY').revolve([0, 1, 0]) as Solid;
+      return p.axis === 'z' ? ring.rotate(90, [0, 0, 0], [1, 0, 0]) : ring;
+    }
   }
+}
+
+/** Lage jedes Bezugssystems im Fahrzeug bei Grundstellung aller Gelenke. */
+function frameOrigins(description: TrailerParts): Record<string, Vec3> {
+  const origins: Record<string, Vec3> = {};
+  for (const [name, frame] of Object.entries(description.frames)) {
+    const parent = frame.parent ? origins[frame.parent] : [0, 0, 0];
+    origins[name] = [parent[0] + frame.origin[0], parent[1] + frame.origin[1], parent[2] + frame.origin[2]];
+  }
+  return origins;
 }
 
 export interface StepPart {
@@ -79,13 +100,7 @@ export interface StepPart {
 export function buildStepParts(k: Kernel, config: TrailerConfig, derived: Derived): StepPart[] {
   const description = trailerParts(config, derived);
   const paint = (COLORS.find((c) => c.id === config.colorId) ?? COLORS[0]).hex;
-  const [bx, by, bz] = description.bogieOrigin;
-  const [dx, dy, dz] = description.drawbarOrigin;
-  const origins: Record<Part['frame'], Vec3> = {
-    chassis: [0, 0, 0],
-    bogie: [bx, by, bz],
-    drawbar: [bx + dx, by + dy, bz + dz],
-  };
+  const origins = frameOrigins(description);
 
   // Gleiche Räder werden einmal gebaut und dann kopiert.
   const wheels = new Map<string, Solid>();
@@ -94,7 +109,7 @@ export function buildStepParts(k: Kernel, config: TrailerConfig, derived: Derive
   return description.parts.map((p) => {
     let solid: Solid;
     if (p.kind === 'wheel') {
-      const key = `${p.radius}/${p.width}`;
+      const key = `${p.radius}/${p.width}/${p.tyre}`;
       if (!wheels.has(key)) wheels.set(key, solidFor(k, p));
       solid = wheels.get(key)!.clone();
     } else {
@@ -111,7 +126,7 @@ export function buildStepParts(k: Kernel, config: TrailerConfig, derived: Derive
     return {
       shape,
       name: `${p.name} ${index}`,
-      color: p.look === 'paint' ? paint : LOOK_COLORS[p.look],
+      color: p.kind === 'wheel' ? TYRE_COLORS[p.tyre] : p.look === 'paint' ? paint : LOOK_COLORS[p.look],
     };
   });
 }

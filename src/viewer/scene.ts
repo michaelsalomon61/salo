@@ -3,7 +3,6 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { CSS2DObject, CSS2DRenderer } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
 import { buildTrailer, type TrailerBuild } from '../trailer/buildTrailer';
-import { jointAngles } from '../trailer/parts';
 import type { Derived, TrailerConfig } from '../trailer/config';
 
 const MM = 0.001;
@@ -20,19 +19,20 @@ export class TrailerScene {
   private readonly sun = new THREE.DirectionalLight(0xffffff, 1.7);
   private readonly dims = new THREE.Group();
   private readonly dimMaterial = new THREE.LineBasicMaterial({ color: 0x8e8e93 });
+  private readonly loadFill = new THREE.MeshBasicMaterial({ color: 0x0a84ff, transparent: true, opacity: 0.16, depthWrite: false });
+  private readonly loadEdge = new THREE.LineBasicMaterial({ color: 0x0a84ff });
   private readonly environment: THREE.Texture;
   private readonly ground: THREE.Mesh;
   private readonly resizeObserver: ResizeObserver;
   private readonly reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   private trailer: TrailerBuild | null = null;
+  private load: THREE.Group | null = null;
   private sizeKey = '';
   private radius = 4;
   private fitDistance = 12;
-  private drawbarAngle = 0;
-  private drawbarTarget = 0;
-  private steerAngle = 0;
-  private steerTarget = 0;
+  /** Momentane Gelenkwinkel, damit Bewegungen über einen Neuaufbau hinweg weiterlaufen. */
+  private angles: Record<string, number> = {};
   private frame = 0;
 
   constructor(private readonly host: HTMLElement) {
@@ -89,29 +89,30 @@ export class TrailerScene {
     this.trailer = buildTrailer(config, derived);
     this.scene.add(this.trailer.group);
 
-    const joints = jointAngles(config);
-    this.drawbarTarget = joints.drawbar;
-    if (this.reducedMotion) this.drawbarAngle = this.drawbarTarget;
-    this.trailer.drawbar.rotation.z = this.drawbarAngle;
+    // Neue Gelenke starten in ihrer Sollstellung, bestehende bewegen sich dorthin.
+    const angles: Record<string, number> = {};
+    for (const [name, joint] of Object.entries(this.trailer.joints)) {
+      angles[name] = this.reducedMotion ? joint.angle : (this.angles[name] ?? joint.angle);
+      joint.object.rotation[joint.axis] = angles[name];
+    }
+    this.angles = angles;
 
-    this.steerTarget = joints.steering;
-    if (this.reducedMotion) this.steerAngle = this.steerTarget;
-    this.trailer.bogie.rotation.y = this.steerAngle;
+    const { reach, height, loadSurfaceY } = this.trailer.description;
+    this.updateLoad(config, loadSurfaceY);
 
     const L = config.lengthMm * MM;
     const W = config.widthMm * MM;
     const H = config.deckHeightMm * MM;
-    const key = `${config.lengthMm}/${config.widthMm}/${config.deckHeightMm}`;
+    const key = `${config.lengthMm}/${config.widthMm}/${config.deckHeightMm}/${Math.round(height * 100)}/${Math.round(reach * 20)}`;
     if (key === this.sizeKey) return;
     const first = this.sizeKey === '';
     this.sizeKey = key;
     this.buildDimensions(L, W, H, config);
 
     // Bildausschnitt mit der Größe mitführen, den Blickwinkel des Nutzers aber behalten.
-    const reach = this.trailer.drawbarLength + 0.3;
     const previousFit = this.fitDistance;
-    this.radius = 0.5 * Math.hypot(L + reach, W + 0.6, H + 0.6);
-    this.controls.target.set(reach * 0.4, H * 0.45, 0);
+    this.radius = 0.5 * Math.hypot(L + reach + 0.3, W + 0.6, height + 0.6);
+    this.controls.target.set((reach + 0.3) * 0.4, height * 0.45, 0);
     this.updateFitDistance();
     if (first) {
       this.resetView();
@@ -146,8 +147,11 @@ export class TrailerScene {
     this.resizeObserver.disconnect();
     this.controls.dispose();
     this.trailer?.dispose();
+    this.clearLoad();
     this.clearDimensions();
     this.dimMaterial.dispose();
+    this.loadFill.dispose();
+    this.loadEdge.dispose();
     this.environment.dispose();
     this.ground.geometry.dispose();
     (this.ground.material as THREE.Material).dispose();
@@ -157,15 +161,13 @@ export class TrailerScene {
   }
 
   private tick() {
-    if (this.trailer && this.drawbarAngle !== this.drawbarTarget) {
-      const delta = this.drawbarTarget - this.drawbarAngle;
-      this.drawbarAngle = Math.abs(delta) < 0.002 ? this.drawbarTarget : this.drawbarAngle + delta * 0.14;
-      this.trailer.drawbar.rotation.z = this.drawbarAngle;
-    }
-    if (this.trailer && this.steerAngle !== this.steerTarget) {
-      const delta = this.steerTarget - this.steerAngle;
-      this.steerAngle = Math.abs(delta) < 0.002 ? this.steerTarget : this.steerAngle + delta * 0.25;
-      this.trailer.bogie.rotation.y = this.steerAngle;
+    if (this.trailer) {
+      for (const [name, joint] of Object.entries(this.trailer.joints)) {
+        const delta = joint.angle - this.angles[name];
+        if (delta === 0) continue;
+        this.angles[name] = Math.abs(delta) < 0.002 ? joint.angle : this.angles[name] + delta * 0.18;
+        joint.object.rotation[joint.axis] = this.angles[name];
+      }
     }
     this.controls.update();
     this.renderer.render(this.scene, this.camera);
@@ -195,6 +197,28 @@ export class TrailerScene {
     this.fitDistance = (0.9 * this.radius) / Math.sin(Math.min(vertical, horizontal));
     this.controls.minDistance = this.radius * 0.5;
     this.controls.maxDistance = this.fitDistance * 2.5;
+  }
+
+  private clearLoad() {
+    if (!this.load) return;
+    this.scene.remove(this.load);
+    this.load.traverse((child) => {
+      if (child instanceof THREE.Mesh || child instanceof THREE.LineSegments) child.geometry.dispose();
+    });
+    this.load = null;
+  }
+
+  /** Zeigt die angegebene Last als durchscheinenden Quader mittig auf der Ladefläche. */
+  private updateLoad(config: TrailerConfig, surfaceY: number) {
+    this.clearLoad();
+    if (!config.showLoad || config.loadType === 'custom') return;
+    const size = new THREE.Vector3(config.loadLengthMm * MM, config.loadHeightMm * MM, config.loadWidthMm * MM);
+    const geometry = new THREE.BoxGeometry(size.x, size.y, size.z);
+    const group = new THREE.Group();
+    group.add(new THREE.Mesh(geometry, this.loadFill), new THREE.LineSegments(new THREE.EdgesGeometry(geometry), this.loadEdge));
+    group.position.set(0, surfaceY + size.y / 2 + 0.002, 0);
+    this.load = group;
+    this.scene.add(group);
   }
 
   private clearDimensions() {
