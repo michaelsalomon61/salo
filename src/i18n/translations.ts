@@ -615,6 +615,38 @@ const T: Record<string, [en: string, sk: string]> = {
     'Ak je priložený referenčný obrázok: prevezmi z neho konštrukciu a proporcie a stvárni ich fotorealisticky.',
   ],
 
+  // ── STEP-Modell per E-Mail ───────────────────────────────────────────────
+  'STEP per E-Mail': ['STEP by email', 'STEP e-mailom'],
+  'STEP-Modell per E-Mail': ['STEP model by email', 'Model STEP e-mailom'],
+  'Empfänger (optional)': ['Recipient (optional)', 'Príjemca (voliteľné)'],
+  'An Mail-App übergeben …': ['Hand over to mail app …', 'Odovzdať poštovej aplikácii …'],
+  'E-Mail-Entwurf erstellen': ['Create email draft', 'Vytvoriť koncept e-mailu'],
+  'Nur STEP-Modell speichern': ['Save STEP model only', 'Uložiť len model STEP'],
+  'Das STEP-Modell wird erzeugt …': ['The STEP model is being generated …', 'Model STEP sa vytvára …'],
+  'Das STEP-Modell ist fertig.': ['The STEP model is ready.', 'Model STEP je hotový.'],
+  'Bitte eine gültige E-Mail-Adresse eingeben oder das Feld leer lassen.': ['Please enter a valid email address or leave the field empty.', 'Zadajte platnú e-mailovú adresu alebo nechajte pole prázdne.'],
+  'Der Entwurf ist gespeichert. Bitte die Datei öffnen: Das Mailprogramm zeigt die Nachricht mit dem STEP-Modell im Anhang.': [
+    'The draft has been saved. Please open the file: your mail program shows the message with the STEP model attached.',
+    'Koncept je uložený. Otvorte súbor: poštový program zobrazí správu s modelom STEP v prílohe.',
+  ],
+  'Dieser Browser gibt STEP-Dateien nicht an andere Apps weiter. Bitte den E-Mail-Entwurf verwenden.': [
+    'This browser does not pass STEP files on to other apps. Please use the email draft.',
+    'Tento prehliadač neodovzdáva súbory STEP iným aplikáciám. Použite koncept e-mailu.',
+  ],
+  'Der Entwurf ist eine Datei mit der Endung .eml. Beim Öffnen zeigt das Mailprogramm (etwa Outlook, Thunderbird oder Apple Mail) die Nachricht mit Anhang; dort prüfen, ergänzen und senden.': [
+    'The draft is a file with the extension .eml. When opened, your mail program (such as Outlook, Thunderbird or Apple Mail) shows the message with the attachment; check it there, add to it and send it.',
+    'Koncept je súbor s príponou .eml. Po otvorení zobrazí poštový program (napríklad Outlook, Thunderbird alebo Apple Mail) správu s prílohou; tam ju skontrolujte, doplňte a odošlite.',
+  ],
+  'Zeigt das Mailprogramm die Nachricht nur zum Lesen an, „Weiterleiten“ wählen: Der Anhang bleibt erhalten.': [
+    'If the mail program shows the message read-only, choose “Forward”: the attachment is kept.',
+    'Ak poštový program zobrazí správu len na čítanie, zvoľte „Preposlať“: príloha zostane zachovaná.',
+  ],
+  'Bei Webmail im Browser das STEP-Modell speichern und von Hand anhängen.': ['With webmail in the browser, save the STEP model and attach it by hand.', 'Pri webmaile v prehliadači uložte model STEP a priložte ho ručne.'],
+  'Die Seite selbst versendet nichts. Es werden keine Daten an einen Server übertragen.': ['The page itself sends nothing. No data is transferred to a server.', 'Stránka sama nič neodosiela. Na server sa neprenášajú žiadne údaje.'],
+  'Im Anhang das STEP-Modell des konfigurierten Anhängers.': ['Attached is the STEP model of the configured trailer.', 'V prílohe je model STEP nakonfigurovaného prívesu.'],
+  'Maße in Millimetern, z nach oben. Jedes Bauteil ist ein benannter Körper.': ['Dimensions in millimetres, z pointing up. Each component is a named body.', 'Rozmery v milimetroch, os z smeruje nahor. Každý diel je pomenované teleso.'],
+  'Konfiguration online öffnen': ['Open the configuration online', 'Otvoriť konfiguráciu online'],
+
   // ── Zurücksetzen ─────────────────────────────────────────────────────────
   Zurücksetzen: ['Reset', 'Obnoviť'],
   Abbrechen: ['Cancel', 'Zrušiť'],

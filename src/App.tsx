@@ -13,6 +13,7 @@ import { describeConfig, describeProse } from './trailer/summary';
 import { BomDialog } from './ui/BomDialog';
 import { Chips, Field, NumberField, Section, Segmented, Slider, Switch, TextArea } from './ui/controls';
 import { saveBlob } from './ui/download';
+import { MailDialog } from './ui/MailDialog';
 import { PromptDialog } from './ui/PromptDialog';
 import { QuoteDialog } from './ui/QuoteDialog';
 import { ResetDialog } from './ui/ResetDialog';
@@ -56,7 +57,7 @@ export function App() {
   }, [requested, currentId]);
   const [showDimensions, setShowDimensions] = useState(true);
   const [resetSignal, setResetSignal] = useState(0);
-  const [dialog, setDialog] = useState<'summary' | 'bom' | 'saved' | 'saveAs' | 'share' | 'quote' | 'prompt' | 'reset' | null>(null);
+  const [dialog, setDialog] = useState<'summary' | 'bom' | 'saved' | 'saveAs' | 'share' | 'quote' | 'prompt' | 'reset' | 'mail' | null>(null);
   const captureRef = useRef<(() => string | null) | null>(null);
   const panelRef = useRef<HTMLElement>(null);
   const [promptCopied, setPromptCopied] = useState(false);
@@ -199,6 +200,9 @@ export function App() {
               </button>
               <button type="button" id="save-step" className="button" disabled={step === 'working'} onClick={saveStep}>
                 {t(step === 'working' ? 'Wird erzeugt …' : 'STEP-Modell')}
+              </button>
+              <button type="button" id="open-mail" className="button" onClick={() => setDialog('mail')}>
+                {t('STEP per E-Mail')}
               </button>
               <button type="button" id="open-prompt" className="button" onClick={() => void openPrompt()}>
                 {t('KI-Bildprompt')}
@@ -438,6 +442,20 @@ export function App() {
 
         {dialog === 'bom' && <BomDialog bom={bom} summary={summary} fileBase={fileBase} colorHex={color.hex} onClose={closeDialog} />}
         {dialog === 'prompt' && <PromptDialog prompt={imagePrompt()} copied={promptCopied} capture={captureRef.current} fileBase={fileBase} onClose={closeDialog} />}
+        {dialog === 'mail' && (
+          <MailDialog
+            createStep={async () => (await import('./cad/exportStep')).exportStep(config, derived, L.partName)}
+            fileBase={fileBase}
+            subject={`${t('STEP-Modell')}: ${current?.name ?? headline}`}
+            body={[
+              t('Im Anhang das STEP-Modell des konfigurierten Anhängers.'),
+              describeProse(config, derived, L),
+              t('Maße in Millimetern, z nach oben. Jedes Bauteil ist ein benannter Körper.'),
+              `${t('Konfiguration online öffnen')}:\n${shareUrl(requested, current?.name ?? linkName, window.location.href)}`,
+            ].join('\n\n')}
+            onClose={closeDialog}
+          />
+        )}
         {dialog === 'reset' && <ResetDialog savedCount={saved.length} onReset={reset} onClose={closeDialog} />}
         {dialog === 'share' && (
           <ShareDialog url={shareUrl(requested, current?.name ?? linkName, window.location.href)} title={current?.name ?? headline} onClose={closeDialog} />

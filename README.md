@@ -16,7 +16,7 @@ Die Oberfläche gibt es in Deutsch, Englisch und Slowakisch, umschaltbar über d
 Zusammenfassung, Stückliste und die Bauteilnamen im STEP-Modell erscheinen in der gewählten Sprache, Zahlen
 in der jeweiligen Landesschreibweise.
 
-Aus der fertigen Konfiguration lassen sich fünf Ergebnisse erzeugen:
+Aus der fertigen Konfiguration lassen sich sechs Ergebnisse erzeugen:
 
 - **Angebot**: Beschreibung der Konfiguration mit geschätztem Preis, ohne Adressdaten, druckbar und als PDF
   speicherbar. Die Preise sind Annahmen und stehen gesammelt in `src/trailer/pricing.ts`.
@@ -25,6 +25,10 @@ Aus der fertigen Konfiguration lassen sich fünf Ergebnisse erzeugen:
   speicherbar als CSV.
 - **STEP-Modell**: jedes Bauteil als benannter Körper, Maße in Millimetern, z nach oben. Lenkung gerade,
   Deichsel waagerecht.
+- **STEP per E-Mail**: erzeugt einen E-Mail-Entwurf (`.eml`) mit dem STEP-Modell im Anhang, Betreff,
+  Kurzbeschreibung und Link zur Konfiguration. Beim Öffnen zeigt das Mailprogramm die Nachricht zum Prüfen
+  und Senden. Auf Geräten mit Teilen-Menü lässt sich das Modell auch direkt an die Mail-App übergeben. Die
+  Seite selbst versendet nichts.
 - **KI-Bildprompt**: ein fertiger Prompt für ChatGPT oder einen anderen Bildgenerator, der die Konfiguration
   genau beschreibt (Maße, Achsen, Räder, Bereifung, Lenkung, Deichsel, Aufbau, Farbe) und ein
   fotorealistisches Bild verlangt. Ein Klick legt ihn in die Zwischenablage; die aktuelle 3D-Ansicht lässt
@@ -70,6 +74,7 @@ aufgebaut, und jedes muss über Berührungen am Rahmen hängen (`src/cad/connect
   enthält dazu die englische und slowakische Fassung. Tests prüfen, dass keine Übersetzung fehlt.
 - `src/viewer/thumbnails.ts`: kleine 3D-Bilder einzelner Bauteile für die Stückliste.
 - `src/storage/saved.ts`: gespeicherte Konfigurationen im lokalen Speicher des Browsers.
+- `src/mail/eml.ts`: baut den E-Mail-Entwurf mit Anhang als `.eml`-Datei.
 - `src/storage/share.ts`: Konfiguration als Link (Abweichungen vom Standard, kodiert hinter dem #-Zeichen).
 - `src/trailer/parts.ts`: beschreibt jedes Bauteil einmal (Form, Lage, Werkstoff). Modell, Stückliste und
   STEP-Export lesen alle aus dieser Liste und bleiben dadurch deckungsgleich.
