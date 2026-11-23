@@ -1,5 +1,4 @@
 import type { CSSProperties, ReactNode } from 'react';
-import { useLocale } from '../i18n/context';
 
 /** Aufklappbare Gruppe für seltener gebrauchte Einstellungen eines Schritts. */
 export function More({ title, hint, children }: { title: string; hint?: string; children: ReactNode }) {
@@ -84,14 +83,13 @@ interface ChoiceProps<T extends string | number> {
   id: string;
   label: string;
   value: T;
-  /** Die Namen der Optionen sind Ausgangstexte und werden hier übersetzt. */
+  /** Die Namen der Optionen in der gewählten Sprache. */
   options: readonly { id: T; name: string; disabled?: boolean }[];
   note?: string;
   onChange: (value: T) => void;
 }
 
 function Choice<T extends string | number>({ id, label, value, options, note, onChange, className }: ChoiceProps<T> & { className: string }) {
-  const { t } = useLocale();
   return (
     <Field label={label} note={note}>
       <div className={className} role="radiogroup" aria-label={label} id={id}>
@@ -105,7 +103,7 @@ function Choice<T extends string | number>({ id, label, value, options, note, on
             disabled={o.disabled}
             onClick={() => onChange(o.id)}
           >
-            {t(o.name)}
+            {o.name}
           </button>
         ))}
       </div>
@@ -117,21 +115,20 @@ interface CardsProps<T extends string> {
   id: string;
   label: string;
   value: T;
-  /** Der Name ist ein Ausgangstext und wird hier übersetzt; der Zusatz ist schon übersetzt. */
+  /** Name und Zusatz in der gewählten Sprache. */
   options: readonly { id: T; name: string; hint: string; picture: ReactNode }[];
   onChange: (value: T) => void;
 }
 
 /** Auswahl einer grundlegenden Variante über Karten mit Bild. */
 export function Cards<T extends string>({ id, label, value, options, onChange }: CardsProps<T>) {
-  const { t } = useLocale();
   return (
     <Field label={label}>
       <div className="cards" role="radiogroup" aria-label={label} id={id}>
         {options.map((o) => (
           <button key={o.id} type="button" id={`${id}-${o.id}`} role="radio" aria-checked={o.id === value} onClick={() => onChange(o.id)}>
             {o.picture}
-            <span>{t(o.name)}</span>
+            <span>{o.name}</span>
             <small>{o.hint}</small>
           </button>
         ))}

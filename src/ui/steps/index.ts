@@ -4,14 +4,21 @@ import type { AdjustedField } from '../../trailer/rules';
 
 export type StepId = 'task' | 'vehicle' | 'running' | 'body' | 'result';
 
-/** Die Schritte der Konfiguration: von der Aufgabe über das Fahrzeug zum Ergebnis. */
-export const STEPS: readonly { id: StepId; name: Msg; lede: Msg }[] = [
-  { id: 'task', name: msg('Aufgabe'), lede: msg('Was wird bewegt, und wo?') },
-  { id: 'vehicle', name: msg('Fahrzeug'), lede: msg('Bauform und Hauptmaße.') },
-  { id: 'running', name: msg('Fahrwerk'), lede: msg('Lenkung, Räder und Bremse.') },
-  { id: 'body', name: msg('Aufbau'), lede: msg('Ladefläche, Deichsel und Ausstattung.') },
-  { id: 'result', name: msg('Ergebnis'), lede: msg('Kennwerte, Unterlagen und Weitergabe.') },
+/** Die Schritte der Konfiguration: von der Aufgabe über das Fahrzeug zum Ergebnis. slug steht in der Adresse. */
+export const STEPS: readonly { id: StepId; slug: string; name: Msg; lede: Msg }[] = [
+  { id: 'task', slug: 'aufgabe', name: msg('Aufgabe'), lede: msg('Was wird bewegt, und wo?') },
+  { id: 'vehicle', slug: 'fahrzeug', name: msg('Fahrzeug'), lede: msg('Bauform und Hauptmaße.') },
+  { id: 'running', slug: 'fahrwerk', name: msg('Fahrwerk'), lede: msg('Lenkung, Räder und Bremse.') },
+  { id: 'body', slug: 'aufbau', name: msg('Aufbau'), lede: msg('Ladefläche, Deichsel und Ausstattung.') },
+  { id: 'result', slug: 'ergebnis', name: msg('Ergebnis'), lede: msg('Kennwerte, Unterlagen und Weitergabe.') },
 ];
+
+/** Der Schritt, den die Adresse hinter dem #-Zeichen nennt; sonst der erste. */
+export function stepFromHash(hash: string): StepId {
+  return STEPS.find((s) => hash === `#/${s.slug}`)?.id ?? 'task';
+}
+
+export const hashOfStep = (id: StepId) => `#/${STEPS.find((s) => s.id === id)!.slug}`;
 
 /** Was jeder Schritt zum Bearbeiten der Konfiguration braucht. */
 export interface StepProps {

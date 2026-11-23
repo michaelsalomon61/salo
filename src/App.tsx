@@ -10,6 +10,7 @@ import { COLORS, DEFAULT_CONFIG, STEERING, optionName, type TrailerConfig } from
 import { resolve } from './trailer/rules';
 import { trailerParts } from './trailer/parts';
 import { estimateQuote, quoteToCsv } from './trailer/pricing';
+import { PANEL_LAYOUT } from './trailer/params';
 import { buildImagePrompt } from './trailer/prompt';
 import { describeConfig, describeProse, summaryToCsv } from './trailer/summary';
 import { saveBlob } from './ui/download';
@@ -25,11 +26,8 @@ import { SavedDialog } from './ui/SavedDialog';
 import { ShareDialog } from './ui/ShareDialog';
 import { StageTools } from './ui/StageTools';
 import { StatusBar } from './ui/StatusBar';
-import { STEPS, type StepId, type StepProps } from './ui/steps';
-import { BodyStep } from './ui/steps/BodyStep';
-import { RunningStep } from './ui/steps/RunningStep';
-import { TaskStep } from './ui/steps/TaskStep';
-import { VehicleStep } from './ui/steps/VehicleStep';
+import { STEPS, hashOfStep, stepFromHash, type StepId, type StepProps } from './ui/steps';
+import { Fields } from './ui/steps/Fields';
 import { TopBar } from './ui/TopBar';
 import type { ViewName } from './viewer/scene';
 import { Viewer } from './viewer/Viewer';
@@ -69,7 +67,13 @@ export function App() {
   }, [requested, currentId]);
   const [showDimensions, setShowDimensions] = useState(true);
   const [view, setView] = useState<{ name: ViewName; n: number }>({ name: 'iso', n: 0 });
-  const [stepId, setStepId] = useState<StepId>('task');
+  // Jeder Schritt hat eine eigene Adresse, damit „Zurück“ im Browser zwischen den Schritten wechselt.
+  const [stepId, setStepId] = useState<StepId>(() => stepFromHash(window.location.hash));
+  useEffect(() => {
+    const onNavigate = () => setStepId(stepFromHash(window.location.hash));
+    window.addEventListener('popstate', onNavigate);
+    return () => window.removeEventListener('popstate', onNavigate);
+  }, []);
   const [dialog, setDialog] = useState<'saved' | 'saveAs' | 'share' | 'prompt' | 'reset' | 'mail' | null>(null);
   const [tab, setTab] = useState<ResultTab>('quote');
   const captureRef = useRef<(() => string | null) | null>(null);
@@ -147,6 +151,7 @@ export function App() {
     setStepExport('idle');
     setShowDimensions(true);
     setView((v) => ({ name: 'iso', n: v.n + 1 }));
+    window.history.replaceState(null, '', hashOfStep('task'));
     setStepId('task');
     setTab('quote');
     setGeneration((n) => n + 1);
@@ -174,6 +179,7 @@ export function App() {
 
   const stepIndex = STEPS.findIndex((s) => s.id === stepId);
   const goTo = (id: StepId) => {
+    if (id !== stepId) window.history.pushState(null, '', hashOfStep(id));
     setStepId(id);
     panelRef.current?.scrollTo({ top: 0 });
   };
@@ -289,10 +295,7 @@ export function App() {
                 <p className="lede">{L.m(STEPS[stepIndex].lede)}</p>
               </header>
               <div className="step" key={`${stepId}-${generation}`}>
-                {stepId === 'task' && <TaskStep {...stepProps} />}
-                {stepId === 'vehicle' && <VehicleStep {...stepProps} />}
-                {stepId === 'running' && <RunningStep {...stepProps} />}
-                {stepId === 'body' && <BodyStep {...stepProps} />}
+                <Fields items={PANEL_LAYOUT[stepId]} {...stepProps} />
               </div>
             </aside>
           )}

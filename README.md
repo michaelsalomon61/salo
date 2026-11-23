@@ -30,7 +30,7 @@ Fenster über der Seite.
 Aus der fertigen Konfiguration lassen sich sechs Ergebnisse erzeugen:
 
 - **Angebot**: Beschreibung der Konfiguration mit geschätztem Preis, ohne Adressdaten, druckbar und als PDF
-  speicherbar. Die Preise sind Annahmen und stehen gesammelt in `src/trailer/pricing.ts`.
+  speicherbar. Die Preise sind Annahmen und stehen in der Datendatei `src/data/prices.json`.
 - **Zusammenfassung**: alle Angaben, Kennwerte und Hinweise auf einen Blick, speicherbar als CSV.
 - **Stückliste**: alle Bauteile mit kleinem 3D-Bild, Menge, Abmessungen, Werkstoff und Gewicht samt Summen,
   speicherbar als CSV.
@@ -75,11 +75,19 @@ aufgebaut, und jedes muss über Berührungen am Rahmen hängen (`src/cad/connect
 
 ## Aufbau
 
-- `src/trailer/config.ts`: Parameter, Auswahllisten, Grenzen und Regelwerk. Aus der gewünschten
-  Konfiguration wird eine baubare abgeleitet (Mindestachszahl, Radgröße, Rahmenhöhe, Mindestmaße).
-- `src/trailer/advice.ts`: Kennwerte (Gewichte, Radlast, Zugkraftbedarf) und Hinweise auf Unstimmigkeiten.
+- `src/data/`: Stammdaten als Datendateien. `rules.json` enthält Einstellbereiche und Kennzahlen des
+  Regelwerks (Achslasten, Bereifung, Radgrößen, Lenkung, Schwellen der Hinweise), `prices.json` die Sätze und
+  Stückpreise des Preismodells. Siehe „Stammdaten pflegen".
+- `src/trailer/config.ts`: die Konfiguration mit Ausgangswerten und Auswahllisten sowie die Auslegung des
+  Fahrwerks (Radgröße, Rahmenhöhe, Mindestmaße).
+- `src/trailer/params.ts`: die Parameterliste. Jeder Parameter ist einmal beschrieben (Beschriftung,
+  Bedienelement, Einheit, Einstellbereich, Bedingung); Bedienung und Zusammenfassung entstehen daraus.
+- `src/trailer/rules.ts`: das Regelwerk als Liste einzelner, benannter Regeln. Aus der gewünschten
+  Konfiguration wird eine baubare; jede Regel nennt das Feld, an dem ihr Hinweis erscheint.
+- `src/trailer/advice.ts`: Kennwerte (Gewichte, Radlast, Zugkraftbedarf) und die Hinweise auf
+  Unstimmigkeiten, ebenfalls als einzelne Regeln.
 - `src/trailer/summary.ts`: die Konfiguration als lesbare Liste und als Kurzbeschreibung.
-- `src/trailer/pricing.ts`: Preismodell auf Schätzbasis (Sätze je Kilogramm, Stückpreise, Zuschläge).
+- `src/trailer/pricing.ts`: Preismodell auf Schätzbasis; rechnet mit den Sätzen aus `prices.json`.
 - `src/trailer/prompt.ts`: Prompt für einen KI-Bildgenerator aus der aktuellen Konfiguration.
 - `src/i18n/`: Sprachumschaltung. Die deutschen Texte im Code sind zugleich die Schlüssel; `translations.ts`
   enthält dazu die englische und slowakische Fassung. Tests prüfen, dass keine Übersetzung fehlt.
@@ -94,7 +102,27 @@ aufgebaut, und jedes muss über Berührungen am Rahmen hängen (`src/cad/connect
 - `src/cad/`: STEP-Export über einen CAD-Kern (OpenCascade), der erst beim Export geladen wird.
 - `src/viewer/`: 3D-Bühne mit Kamera, Licht und Maßlinien (Three.js).
 - `src/App.tsx`: Zustand und Zusammenspiel; `src/ui/TopBar.tsx`, `StageTools.tsx`, `StatusBar.tsx`: Kopfzeile,
-  Werkzeugleiste und Fußleiste; `src/ui/steps/`: je eine Datei pro Schritt; `src/ui/result/`: die Ergebnisseite mit ihren Reitern; `src/styles.css`: Gestaltung.
+  Werkzeugleiste und Fußleiste; `src/ui/steps/`: die Schritte, deren Felder aus der Parameterliste entstehen; `src/ui/result/`: die
+  Ergebnisseite mit ihren Reitern; `src/styles.css`: Gestaltung.
+
+## Stammdaten pflegen
+
+Preise und Grenzwerte lassen sich ändern, ohne den Programmcode anzufassen:
+
+- `src/data/prices.json`: Fertigungspreis je Kilogramm nach Werkstoff, Stückpreise der Zukaufteile, Pauschalen
+  für Leitungen, Lackierung, Montage, Konstruktion, Aufschlag, Mehrwertsteuer und Spanne der Schätzung.
+- `src/data/rules.json`: Einstellbereiche der Schieberegler, Achslasten, Eigenschaften der Bereifungen,
+  lieferbare Radgrößen, Lenkeinschläge und die Schwellen, ab denen Hinweise erscheinen.
+
+Jeder Abschnitt trägt unter „hinweis" eine kurze Erklärung. Nach einer Änderung prüft `npm test`, ob die
+Dateien vollständig und schlüssig sind. Ein Push auf den Hauptzweig veröffentlicht den neuen Stand.
+
+Ein neuer Parameter braucht vier Stellen: den Eintrag mit Ausgangswert in `config.ts`, die Beschreibung in
+`params.ts` samt Platz in Bedienung und Zusammenfassung, die Übersetzungen und seine Wirkung im Modell
+(`parts.ts`). Tests melden, wenn ein Parameter in Bedienung oder Zusammenfassung fehlt.
+
+Jeder Schritt hat eine eigene Adresse (`#/aufgabe` bis `#/ergebnis`); „Zurück" im Browser wechselt zwischen
+den Schritten.
 
 ## Hinweis
 
