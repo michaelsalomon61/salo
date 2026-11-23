@@ -15,7 +15,8 @@ Konfiguration selbst enthält: Jeder mit dem Link kann sie öffnen, ohne Konto u
 Die Bedienung führt in fünf Schritten von der Aufgabe (Last, Einsatz) über Fahrzeug, Fahrwerk und Aufbau zum
 Ergebnis. Die Kopfzeile zeigt die Schritte, den Namen der Konfiguration mit Speicherstand, Teilen und die
 Sprache. Eine Fußleiste nennt laufend die Folgen jeder Änderung: Eigengewicht, Gesamtgewicht, Radlast,
-Zugkraftbedarf, Richtpreis und die Zahl der Hinweise. Was nur die Darstellung betrifft (Maße, Ladung,
+Zugkraftbedarf, Richtpreis und die Zahl der Hinweise. Bauform, Lenkung und Bereifung wählt man über Bildkarten;
+bei Lenkung und Bereifung nennen sie den größten Lenkeinschlag bzw. die empfohlene Höchstgeschwindigkeit. Was nur die Darstellung betrifft (Maße, Ladung,
 Ansichten, Lenkeinschlag, Deichsel hoch), liegt als Werkzeugleiste an der 3D-Ansicht.
 
 Die Oberfläche gibt es in Deutsch, Englisch und Slowakisch, umschaltbar in der Kopfzeile. Angebot,
@@ -29,7 +30,7 @@ Fenster über der Seite.
 
 Aus der fertigen Konfiguration lassen sich sechs Ergebnisse erzeugen:
 
-- **Angebot**: Beschreibung der Konfiguration mit geschätztem Preis, ohne Adressdaten, druckbar und als PDF
+- **Angebot**: Beschreibung der Konfiguration mit Bild und geschätztem Preis, ohne Adressdaten, druckbar und als PDF
   speicherbar. Die Preise sind Annahmen und stehen in der Datendatei `src/data/prices.json`.
 - **Zusammenfassung**: alle Angaben, Kennwerte und Hinweise auf einen Blick, speicherbar als CSV.
 - **Stückliste**: alle Bauteile mit kleinem 3D-Bild, Menge, Abmessungen, Werkstoff und Gewicht samt Summen,

@@ -13,9 +13,11 @@ interface Props {
   compact?: boolean;
   /** Wird mit einer Funktion belegt, die die aktuelle Ansicht als PNG liefert. */
   captureRef?: RefObject<(() => string | null) | null>;
+  /** Wird mit einer Funktion belegt, die ein Bild der Konfiguration für Unterlagen liefert. */
+  snapshotRef?: RefObject<(() => string | null) | null>;
 }
 
-export function Viewer({ config, derived, showDimensions, view, compact = false, captureRef }: Props) {
+export function Viewer({ config, derived, showDimensions, view, compact = false, captureRef, snapshotRef }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<TrailerScene | null>(null);
   const [failed, setFailed] = useState(false);
@@ -25,6 +27,7 @@ export function Viewer({ config, derived, showDimensions, view, compact = false,
     try {
       sceneRef.current = new TrailerScene(hostRef.current!);
       if (captureRef) captureRef.current = () => sceneRef.current?.capture() ?? null;
+      if (snapshotRef) snapshotRef.current = () => sceneRef.current?.snapshot() ?? null;
     } catch {
       setFailed(true);
     }
@@ -32,8 +35,9 @@ export function Viewer({ config, derived, showDimensions, view, compact = false,
       sceneRef.current?.dispose();
       sceneRef.current = null;
       if (captureRef) captureRef.current = null;
+      if (snapshotRef) snapshotRef.current = null;
     };
-  }, [captureRef]);
+  }, [captureRef, snapshotRef]);
 
   useEffect(() => {
     sceneRef.current?.update(config, derived, L.mm);

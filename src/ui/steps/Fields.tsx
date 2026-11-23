@@ -4,10 +4,10 @@ import { COLORS, type TrailerConfig } from '../../trailer/config';
 import { PARAMS, formatValue, isRelevant, labelOf, optionsOf, rangeOf, type LayoutItem, type MoreGroup, type ParamKey } from '../../trailer/params';
 import { Cards, Chips, Field, More, NumberField, Segmented, Slider, Subhead, Switch, TextArea } from '../controls';
 import type { StepProps } from './index';
-import { BODY_PICTURES } from './pictures';
+import { BODY_PICTURES, STEERING_PICTURES, TYRE_PICTURES } from './pictures';
 
 /** Bilder für Karten, je Parameter und Option. */
-const PICTURES: Partial<Record<ParamKey, Record<string, ReactNode>>> = { body: BODY_PICTURES };
+const PICTURES: Partial<Record<ParamKey, Record<string, ReactNode>>> = { body: BODY_PICTURES, steering: STEERING_PICTURES, tyre: TYRE_PICTURES };
 
 /** Das Bedienelement zu einem Parameter, wie die Parameterliste es beschreibt. */
 function ParamField({ name, config, derived, set, note }: StepProps & { name: ParamKey }) {
@@ -27,7 +27,17 @@ function ParamField({ name, config, derived, set, note }: StepProps & { name: Pa
       const options = optionsOf(name, L).map((o) => ({ ...o, disabled: param.disabled?.(o.id, config, derived) }));
       const value = config[name] as string | number;
       if (param.control === 'cards') {
-        return <Cards id={param.id} label={label} value={String(value)} options={options.map((o) => ({ id: String(o.id), name: o.name, hint: L.m(param.hints![o.id]), picture: PICTURES[name]?.[o.id] }))} onChange={change} />;
+        const hintOf = (id: string) => (typeof param.hints === 'function' ? param.hints(id) : param.hints![id]);
+        return (
+          <Cards
+            id={param.id}
+            label={label}
+            value={String(value)}
+            columns={param.columns}
+            options={options.map((o) => ({ id: String(o.id), name: o.name, hint: L.m(hintOf(String(o.id))), picture: PICTURES[name]?.[o.id] }))}
+            onChange={change}
+          />
+        );
       }
       const Choice = param.control === 'chips' ? Chips : Segmented;
       return <Choice id={param.id} label={label} value={value} options={options} note={hint} onChange={change} />;

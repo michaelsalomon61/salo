@@ -582,6 +582,11 @@ const T: Record<string, [en: string, sk: string]> = {
   'Zu dieser Konfiguration gibt es keine Hinweise.': ['There are no notes on this configuration.', 'K tejto konfigurácii nie sú žiadne upozornenia.'],
   Schließen: ['Close', 'Zavrieť'],
 
+  // ── Bildkarten und Bild im Angebot ───────────────────────────────────────
+  'bis {deg}°': ['up to {deg}°', 'do {deg}°'],
+  'bis {speed} km/h': ['up to {speed} km/h', 'do {speed} km/h'],
+  'Bild der Konfiguration': ['Picture of the configuration', 'Obrázok konfigurácie'],
+
   // ── KI-Bildprompt ────────────────────────────────────────────────────────
   'KI-Bildprompt': ['AI image prompt', 'Prompt pre AI obrázok'],
   'Fotorealistisches Bild der Konfiguration mit ChatGPT oder einem anderen Bildgenerator erzeugen': ['Create a photorealistic image of the configuration with ChatGPT or another image generator', 'Vytvorte fotorealistický obrázok konfigurácie pomocou ChatGPT alebo iného generátora obrázkov'],

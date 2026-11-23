@@ -9,7 +9,7 @@
  * SUMMARY_LAYOUT (summary.ts), die Übersetzungen und seine Wirkung im Modell.
  */
 import { msg, type Locale, type Msg } from '../i18n';
-import { COLORS, LIMITS, OPTIONS, hasBoardDeck, optionName, type Derived, type TrailerConfig } from './config';
+import { COLORS, LIMITS, OPTIONS, STEERING, TYRES, hasBoardDeck, optionName, type Derived, type Steering, type TrailerConfig, type Tyre } from './config';
 
 export type ParamKey = keyof TrailerConfig;
 type Text = Msg | ((c: TrailerConfig) => Msg);
@@ -43,7 +43,9 @@ export interface ChoiceParam extends Common {
   numbers?: readonly number[];
   disabled?: (id: string | number, c: TrailerConfig, d: Derived) => boolean;
   /** Karten: ein Stichwort je Option. */
-  hints?: Record<string, Msg>;
+  hints?: Record<string, Msg> | ((id: string) => Msg);
+  /** Karten: Anzahl nebeneinander; zwei für längere Namen. */
+  columns?: 2 | 3;
 }
 
 export interface SwitchParam extends Common {
@@ -137,8 +139,9 @@ export const PARAMS: Record<ParamKey, Param> = {
   roofSides: { id: 'roof-sides', control: 'chips', label: msg('Seiten'), when: roofed },
 
   // Fahrwerk
-  steering: { id: 'steering-type', control: 'chips', label: msg('Lenkung') },
-  tyre: { id: 'tyre', control: 'chips', label: msg('Bereifung') },
+  // Die Zusätze nennen, was die Stammdaten hergeben: größter Lenkeinschlag und empfohlene Höchstgeschwindigkeit.
+  steering: { id: 'steering-type', control: 'cards', columns: 2, label: msg('Lenkung'), hints: (id) => msg('bis {deg}°', { deg: STEERING[id as Steering].maxDeg }) },
+  tyre: { id: 'tyre', control: 'cards', columns: 2, label: msg('Bereifung'), hints: (id) => msg('bis {speed} km/h', { speed: TYRES[id as Tyre].maxSpeedKmh }) },
   nonMarking: { id: 'non-marking', control: 'switch', label: msg('Spurfreie Bereifung') },
   suspension: { id: 'suspension', control: 'chips', label: msg('Federung') },
   brake: { id: 'brake', control: 'chips', label: msg('Betriebsbremse'), shortLabel: msg('Bremse') },

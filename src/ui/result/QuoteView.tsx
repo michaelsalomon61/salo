@@ -9,13 +9,15 @@ interface Props {
   prose: string;
   sections: SummarySection[];
   quote: Quote;
+  /** Bild der Konfiguration, falls die 3D-Ansicht eines liefern kann. */
+  picture: string | null;
 }
 
 /** Abschnitte der Zusammenfassung, die die Ausführung beschreiben; Einsatzdaten und Kennwerte bleiben außen vor. */
 const SPEC_SECTIONS: SummarySection['id'][] = ['basics', 'body', 'running', 'deck', 'drawbar', 'equipment'];
 
 /** Angebot zur Konfiguration: Beschreibung und geschätzter Preis, ohne Adressdaten. */
-export function QuoteView({ name, title, prose, sections, quote }: Props) {
+export function QuoteView({ name, title, prose, sections, quote, picture }: Props) {
   const L = useLocale();
   const { t, eur } = L;
   return (
@@ -25,8 +27,9 @@ export function QuoteView({ name, title, prose, sections, quote }: Props) {
           <p className="eyebrow">{t('Angebot · Preisschätzung')}</p>
           <h2>{title}</h2>
           {name && <p className="lede">{t('Konfiguration „{name}“', { name: { raw: name } })}</p>}
+          <p className="quote-date">{t('Stand {date}', { date: { raw: L.date(new Date()) } })}</p>
         </div>
-        <p className="quote-date">{t('Stand {date}', { date: { raw: L.date(new Date()) } })}</p>
+        {picture && <img className="quote-picture" src={picture} alt={t('Bild der Konfiguration')} width={960} height={540} />}
       </header>
 
       <p className="quote-prose">{prose}</p>

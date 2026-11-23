@@ -19,6 +19,7 @@ interface Props {
 export function StatusBar({ figures, adjusted, notices, price, brief, back, next }: Props) {
   const { t } = useLocale();
   const count = adjusted.length + notices.length;
+  const countText = count === 1 ? t('1 Hinweis') : t('{count} Hinweise', { count });
   return (
     <footer className="bar">
       <dl className="bar-figures">
@@ -33,7 +34,18 @@ export function StatusBar({ figures, adjusted, notices, price, brief, back, next
         ))}
       </dl>
       {count > 0 ? (
-        <Popover id="open-hints" buttonClass="hint" up button={count === 1 ? t('1 Hinweis') : t('{count} Hinweise', { count })}>
+        <Popover
+          id="open-hints"
+          buttonClass="hint"
+          label={countText}
+          up
+          button={
+            <>
+              <span className="wide">{countText}</span>
+              <span className="narrow">{count}</span>
+            </>
+          }
+        >
           {() => (
             <div className="hints">
               {adjusted.length > 0 && (

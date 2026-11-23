@@ -858,10 +858,14 @@ select.button {
 
 .quote-head {
   display: flex;
-  flex-wrap: wrap;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 8px 24px;
+  gap: 16px 28px;
+}
+
+.quote-head > div {
+  flex: 1;
+  min-width: 0;
 }
 
 .quote-head h2 {
@@ -871,8 +875,20 @@ select.button {
 }
 
 .quote-date {
+  margin-top: 8px;
   color: var(--fg-muted);
   font-variant-numeric: tabular-nums;
+}
+
+/* Bild der Konfiguration: klein neben dem Titel, auf weißem Grund wie auf dem Papier. */
+.quote-picture {
+  flex: none;
+  width: 250px;
+  max-width: 42%;
+  height: auto;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 0 0 1px var(--hairline);
 }
 
 .quote-prose {
@@ -927,6 +943,14 @@ select.button {
 @media (max-width: 600px) {
   .quote {
     padding: 18px;
+  }
+
+  .quote-head {
+    flex-direction: column;
+  }
+
+  .quote-picture {
+    max-width: 100%;
   }
 }
 
@@ -1001,6 +1025,11 @@ select.button {
   .quote-prose {
     max-width: none;
     font-size: 12.5px;
+  }
+
+  .quote-picture {
+    width: 62mm;
+    box-shadow: none;
   }
 
   .quote h3 {
@@ -1133,24 +1162,37 @@ select.button {
   max-width: 100%;
   height: 38px;
   margin-bottom: 6px;
-  fill: var(--track);
+  fill: var(--fg-muted);
+  opacity: 0.55;
 }
 
 .cards button[aria-checked='true'] svg {
   fill: var(--fg);
+  opacity: 1;
 }
 
-.cards span {
+.card-text {
+  display: flex;
+  flex-direction: column;
   max-width: 100%;
+  min-width: 0;
+}
+
+.card-text > span {
   overflow: hidden;
   text-overflow: ellipsis;
   font-size: 14px;
   font-weight: 500;
 }
 
-.cards small {
-  color: var(--fg-muted);
-  font-size: 12px;
+/* Zwei Spalten für Auswahlen mit längeren Namen; sie dürfen an Leerzeichen und Bindestrichen umbrechen. */
+.cards.two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.cards.two .card-text > span {
+  overflow: visible;
+  line-height: 1.25;
 }
 
 /* Zeilen zum Antippen: Unterlagen und Ausgaben */
@@ -1539,7 +1581,7 @@ select.button {
 }
 
 .bar-price .bar-brief,
-.bar-nav .narrow {
+.bar .narrow {
   display: none;
 }
 
@@ -2114,7 +2156,7 @@ input[type='range']:disabled {
   .doc-status,
   .bar-figures,
   .bar-price > small:first-child,
-  .bar-nav .wide,
+  .bar .wide,
   #step-back {
     display: none;
   }
@@ -2167,27 +2209,29 @@ input[type='range']:disabled {
     font-size: 24px;
   }
 
+  /* Reihenfolge: Preis links, daneben der Hinweis-Zähler, rechts „Weiter“. */
   .bar {
     padding-left: var(--gutter-left);
-    gap: 12px;
+    gap: 10px;
   }
 
   .bar-end {
-    gap: 12px;
+    display: contents;
   }
 
   .bar-price {
-    order: -1;
+    order: 0;
+    margin-right: auto;
     text-align: left;
   }
 
-  .bar {
-    flex-direction: row-reverse;
+  .bar .popover,
+  .hint {
+    order: 1;
   }
 
-  .bar-end {
-    flex-direction: row;
-    justify-content: space-between;
+  .bar-nav {
+    order: 2;
   }
 
   .bar-price b {
@@ -2195,8 +2239,12 @@ input[type='range']:disabled {
   }
 
   .bar-price .bar-brief,
-  .bar-nav .narrow {
+  .bar .narrow {
     display: block;
+  }
+
+  .hint {
+    padding: 8px 12px;
   }
 
   .hint.none {

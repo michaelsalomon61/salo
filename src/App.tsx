@@ -77,6 +77,9 @@ export function App() {
   const [dialog, setDialog] = useState<'saved' | 'saveAs' | 'share' | 'prompt' | 'reset' | 'mail' | null>(null);
   const [tab, setTab] = useState<ResultTab>('quote');
   const captureRef = useRef<(() => string | null) | null>(null);
+  const snapshotRef = useRef<(() => string | null) | null>(null);
+  /** Bild der Konfiguration für das Angebot. */
+  const [picture, setPicture] = useState<string | null>(null);
   const panelRef = useRef<HTMLElement>(null);
   const [promptCopied, setPromptCopied] = useState(false);
   /** Zählt Neustarts; damit werden aufgeklappte Gruppen der Bedienung zurückgestellt. */
@@ -187,6 +190,19 @@ export function App() {
   const bodyType = L.m({ platform: msg('Plattformanhänger'), lowbed: msg('Tiefladeanhänger'), longload: msg('Langmaterialanhänger') }[config.body]);
   const tonnes = (kilograms: number) => `${nf(Math.round(kilograms / 100) / 10)} t`;
   const isResult = stepId === 'result';
+  // Das Bild für das Angebot entsteht, sobald die Ergebnisseite steht und das Modell dazu aufgebaut ist.
+  useEffect(() => {
+    if (!isResult) return;
+    const frame = requestAnimationFrame(() => {
+      try {
+        setPicture(snapshotRef.current?.() ?? null);
+      } catch {
+        // Ohne 3D-Ansicht bleibt das Angebot ohne Bild.
+        setPicture(null);
+      }
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [isResult, config, derived]);
   const sections = useMemo(() => describeConfig(config, derived, description, bom.totalKg, bom.pieceCount, L), [config, derived, description, bom, L]);
   const adjusted = [...new Set(Object.values(adjustments).map(L.m))];
   const title = t('{payload} t {type}', { payload: config.payloadT, type: { raw: bodyType } });
@@ -227,7 +243,7 @@ export function App() {
           {/* Die Bühne bleibt über alle Schritte dieselbe; auf der Ergebnisseite rückt sie in die linke Spalte. */}
           <div className="lead">
             <section className="stage" aria-label={t('3D-Ansicht')}>
-              <Viewer config={config} derived={derived} showDimensions={showDimensions && !isResult} view={view} compact={isResult} captureRef={captureRef} />
+              <Viewer config={config} derived={derived} showDimensions={showDimensions && !isResult} view={view} compact={isResult} captureRef={captureRef} snapshotRef={snapshotRef} />
               {!isResult && (
                 <>
                   <div className="stage-head">
@@ -281,6 +297,7 @@ export function App() {
                   prose={describeProse(config, derived, L)}
                   sections={sections}
                   quote={quote}
+                  picture={picture}
                 />
               )}
               {tab === 'bom' && <BomView bom={bom} colorHex={color.hex} />}

@@ -117,19 +117,23 @@ interface CardsProps<T extends string> {
   value: T;
   /** Name und Zusatz in der gewählten Sprache. */
   options: readonly { id: T; name: string; hint: string; picture: ReactNode }[];
+  /** Zwei Spalten für längere Namen. */
+  columns?: 2 | 3;
   onChange: (value: T) => void;
 }
 
 /** Auswahl einer grundlegenden Variante über Karten mit Bild. */
-export function Cards<T extends string>({ id, label, value, options, onChange }: CardsProps<T>) {
+export function Cards<T extends string>({ id, label, value, options, columns = 3, onChange }: CardsProps<T>) {
   return (
     <Field label={label}>
-      <div className="cards" role="radiogroup" aria-label={label} id={id}>
+      <div className={columns === 2 ? 'cards two' : 'cards'} role="radiogroup" aria-label={label} id={id}>
         {options.map((o) => (
           <button key={o.id} type="button" id={`${id}-${o.id}`} role="radio" aria-checked={o.id === value} onClick={() => onChange(o.id)}>
             {o.picture}
-            <span>{o.name}</span>
-            <small>{o.hint}</small>
+            <span className="card-text">
+              <span>{o.name}</span>
+              <small>{o.hint}</small>
+            </span>
           </button>
         ))}
       </div>

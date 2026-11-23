@@ -167,6 +167,76 @@ export class TrailerScene {
     return canvas.toDataURL('image/png');
   }
 
+  /**
+   * Bild der Konfiguration für Unterlagen: feste Größe und Schrägansicht, auf
+   * weißem Grund, ohne Maßlinien und ohne Ladung. Die Ansicht des Nutzers
+   * bleibt unberührt.
+   */
+  snapshot(width = 960, height = 540): string {
+    const position = this.camera.position.clone();
+    const ratio = this.renderer.getPixelRatio();
+    const dimsShown = this.dims.visible;
+    const loadShown = this.load?.visible ?? false;
+    this.dims.visible = false;
+    if (this.load) this.load.visible = false;
+
+    this.renderer.setPixelRatio(1);
+    this.renderer.setSize(width, height, false);
+    this.camera.aspect = width / height;
+    this.camera.updateProjectionMatrix();
+
+    // Schrägansicht aus der üblichen Entfernung, dann der Ausschnitt genau um das Modell.
+    const box = this.trailer ? new THREE.Box3().setFromObject(this.trailer.group) : new THREE.Box3().setFromCenterAndSize(this.controls.target, new THREE.Vector3(1, 1, 1));
+    const center = box.getCenter(new THREE.Vector3());
+    const vertical = THREE.MathUtils.degToRad(this.camera.fov) / 2;
+    const horizontal = Math.atan(Math.tan(vertical) * this.camera.aspect);
+    this.camera.position.copy(center).addScaledVector(VIEWS.iso, (0.9 * this.radius) / Math.sin(Math.min(vertical, horizontal)));
+    this.camera.lookAt(center);
+    this.camera.updateMatrixWorld();
+
+    // Wo die Ecken des Modells im Bild liegen, in Pixeln.
+    let [left, right, top, bottom] = [Infinity, -Infinity, Infinity, -Infinity];
+    for (const x of [box.min.x, box.max.x]) {
+      for (const y of [box.min.y, box.max.y]) {
+        for (const z of [box.min.z, box.max.z]) {
+          const corner = new THREE.Vector3(x, y, z).project(this.camera);
+          const px = ((corner.x + 1) / 2) * width;
+          const py = ((1 - corner.y) / 2) * height;
+          left = Math.min(left, px);
+          right = Math.max(right, px);
+          top = Math.min(top, py);
+          bottom = Math.max(bottom, py);
+        }
+      }
+    }
+    // Auf das Seitenverhältnis des Bilds bringen und einen Rand für den Schatten lassen.
+    const margin = 1.14;
+    const frameWidth = Math.max(right - left, (bottom - top) * (width / height)) * margin;
+    const frameHeight = frameWidth * (height / width);
+    this.camera.setViewOffset(width, height, (left + right - frameWidth) / 2, (top + bottom - frameHeight) / 2, frameWidth, frameHeight);
+    this.renderer.render(this.scene, this.camera);
+    this.camera.clearViewOffset();
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const g = canvas.getContext('2d')!;
+    g.fillStyle = '#ffffff';
+    g.fillRect(0, 0, width, height);
+    g.drawImage(this.renderer.domElement, 0, 0);
+    const image = canvas.toDataURL('image/png');
+
+    // Zurück zur Bühne, wie sie war, und gleich neu zeichnen, damit nichts flackert.
+    this.dims.visible = dimsShown;
+    if (this.load) this.load.visible = loadShown;
+    this.renderer.setPixelRatio(ratio);
+    this.resize();
+    this.camera.position.copy(position);
+    this.controls.update();
+    this.renderer.render(this.scene, this.camera);
+    return image;
+  }
+
   /** Für kleine Ausschnitte: das Modell größer zeigen und die Ansicht neu ausrichten. */
   setFill(fill: number) {
     if (fill === this.fill) return;
