@@ -1,4 +1,4 @@
-/* Layout: eine Bildschirmhöhe, links die 3D-Bühne als ruhige Kachel, rechts die Konfiguration. */
+/* Layout: Kopfzeile mit den Schritten, darunter 3D-Bühne und Konfiguration, unten die Kennwerte. */
 :root {
   --bg: #ffffff;
   --stage-from: #fbfbfd;
@@ -78,9 +78,6 @@ body,
 
 body {
   margin: 0;
-  padding-block: 16px;
-  padding-left: max(16px, env(safe-area-inset-left, 0px));
-  padding-right: max(16px, env(safe-area-inset-right, 0px));
   background: var(--bg);
   color: var(--fg);
   font-family: var(--font);
@@ -91,6 +88,7 @@ body {
 
 h1,
 h2,
+h3,
 p,
 dl,
 dd {
@@ -98,16 +96,272 @@ dd {
 }
 
 .app {
+  --gutter-left: max(16px, env(safe-area-inset-left, 0px));
+  --gutter-right: max(16px, env(safe-area-inset-right, 0px));
   height: 100%;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 380px;
-  gap: 32px;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+.work {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 432px;
+}
+
+.icon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ── Kopfzeile ─────────────────────────────────────────────────────────── */
+.top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px 16px;
+  padding: 10px var(--gutter-right) 10px var(--gutter-left);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.top-start,
+.top-end {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.top-end {
+  justify-content: flex-end;
+}
+
+.brand {
+  padding-right: 12px;
+  border-right: 1px solid var(--hairline);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.doc {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  padding: 7px 6px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.doc:hover,
+.doc[aria-expanded='true'] {
+  background: var(--control);
+}
+
+.doc .icon {
+  width: 14px;
+  height: 14px;
+  color: var(--fg-muted);
+}
+
+.doc-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.doc-status:empty {
+  display: none;
+}
+
+.doc-status {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--fg-muted);
+  font-size: 13px;
+}
+
+.steps {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--control);
+}
+
+.steps button {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px 6px 7px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--fg-muted);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.steps em {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--track);
+  color: var(--bg);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 600;
+}
+
+.steps em .icon {
+  width: 11px;
+  height: 11px;
+  stroke-width: 2.4;
+}
+
+.steps .done {
+  color: var(--fg);
+}
+
+.steps .done em {
+  background: var(--fg);
+}
+
+.steps [aria-current='step'] {
+  background: var(--control-active);
+  color: var(--fg);
+  box-shadow: var(--shadow);
+}
+
+.steps [aria-current='step'] em {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
+/* ── Felder an Schaltflächen ───────────────────────────────────────────── */
+.popover {
+  display: flex;
+  min-width: 0;
+}
+
+.popover-panel {
+  position: fixed;
+  z-index: 15;
+  max-width: calc(100vw - 16px);
+  padding: 6px;
+  border-radius: 16px;
+  background: var(--bg);
+  box-shadow:
+    0 0 0 1px var(--hairline),
+    0 12px 32px rgba(0, 0, 0, 0.16);
+}
+
+.menu {
+  display: flex;
+  flex-direction: column;
+  min-width: 240px;
+}
+
+.menu button {
+  appearance: none;
+  padding: 9px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.menu button:hover {
+  background: var(--control);
+}
+
+.menu hr {
+  width: 100%;
+  margin: 6px 0;
+  border: 0;
+  border-top: 1px solid var(--hairline);
+}
+
+.hints {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 360px;
+  max-width: 100%;
+  padding: 10px 12px 12px;
+  font-size: 14px;
+}
+
+.hints h3 {
+  color: var(--fg-muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.hints ul {
+  margin: 0 0 4px;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pose {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  padding: 10px 8px 8px;
+}
+
+.pose .tool-slider {
+  padding: 0 6px;
+}
+
+.pose .tool-slider input[type='range'] {
+  flex: 1;
+  width: auto;
+  min-width: 120px;
+}
+
+.pose .tool {
+  background: var(--control);
+}
+
+.pose .tool[aria-pressed='true'] {
+  background: var(--fg);
 }
 
 /* ── Bühne ─────────────────────────────────────────────────────────────── */
 .stage {
   position: relative;
   min-height: 0;
+  margin: 16px 0 16px var(--gutter-left);
   border-radius: var(--radius-stage);
   background: radial-gradient(120% 90% at 50% 35%, var(--stage-from), var(--stage-to));
   overflow: hidden;
@@ -145,54 +399,116 @@ dd {
   box-shadow: var(--shadow);
 }
 
-.stage-tools {
+.stage-head {
   position: absolute;
-  top: 16px;
-  right: 16px;
-  display: flex;
-  gap: 8px;
+  top: 26px;
+  left: 30px;
+  right: 30px;
+  pointer-events: none;
 }
 
-.pill {
-  appearance: none;
-  border: 0;
-  padding: 7px 14px;
-  border-radius: 999px;
-  background: var(--label-bg);
-  color: var(--fg);
-  font: inherit;
-  font-size: 13px;
-  font-weight: 500;
-  box-shadow: var(--shadow);
-  cursor: pointer;
+.stage-head h1 {
+  margin: 0;
+  font-size: 28px;
 }
 
-.pill[aria-pressed='true'] {
-  background: var(--fg);
-  color: var(--bg);
-}
-
-/* Sprachauswahl im Stil der übrigen Schaltflächen, mit eigenem Pfeil. */
-select.pill {
-  -webkit-appearance: none;
-  padding-right: 30px;
-  background-image:
-    linear-gradient(45deg, transparent 50%, var(--fg) 50%), linear-gradient(135deg, var(--fg) 50%, transparent 50%);
-  background-position:
-    calc(100% - 16px) 55%,
-    calc(100% - 11px) 55%;
-  background-size: 5px 5px;
-  background-repeat: no-repeat;
+.stage-head p {
+  margin-top: 6px;
+  color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;
 }
 
 .stage-hint {
   position: absolute;
-  left: 20px;
-  bottom: 16px;
-  right: 20px;
+  top: 30px;
+  right: 30px;
+  max-width: 34%;
   color: var(--fg-muted);
   font-size: 12px;
+  text-align: right;
   pointer-events: none;
+}
+
+/* Werkzeugleiste unten in der Bühne. */
+.stage-tools {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 20px;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  max-width: 100%;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--label-bg);
+  box-shadow:
+    var(--shadow),
+    0 4px 16px rgba(0, 0, 0, 0.06);
+  pointer-events: auto;
+}
+
+.toolbar > i {
+  flex: none;
+  width: 1px;
+  height: 18px;
+  margin: 0 4px;
+  background: var(--hairline);
+}
+
+.tool {
+  appearance: none;
+  padding: 7px 13px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.tool:hover {
+  background: var(--control);
+}
+
+.tool[aria-pressed='true'] {
+  background: var(--fg);
+  color: var(--bg);
+}
+
+.tool:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.tool-slider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 10px 0 13px;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.tool-slider input[type='range'] {
+  flex: none;
+  width: 110px;
+}
+
+.tool-slider output {
+  min-width: 62px;
+  color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;
 }
 
 .stage-error {
@@ -225,6 +541,35 @@ select.pill {
   color: var(--accent-contrast);
 }
 
+.button:has(.icon) {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.button.small {
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+.button.large {
+  padding: 12px 22px;
+  font-size: 15px;
+}
+
+/* Sprachauswahl im Stil der übrigen Schaltflächen, mit eigenem Pfeil. */
+select.button {
+  -webkit-appearance: none;
+  padding-right: 30px;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--fg-muted) 50%), linear-gradient(135deg, var(--fg-muted) 50%, transparent 50%);
+  background-position:
+    calc(100% - 16px) 55%,
+    calc(100% - 11px) 55%;
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+}
+
 .button:disabled {
   opacity: 0.5;
   cursor: default;
@@ -246,34 +591,7 @@ select.pill {
   color: #ffffff;
 }
 
-/* ── Speichern ─────────────────────────────────────────────────────────── */
-.save-bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  margin-top: 14px;
-  padding: 12px 14px;
-  border-radius: 14px;
-  background: var(--control);
-}
-
-.save-state {
-  flex: 1 1 100%;
-  min-width: 0;
-}
-
-.save-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.save-buttons .button {
-  padding: 7px 12px;
-  font-size: 13px;
-}
-
+/* ── Dialoge ───────────────────────────────────────────────────────────── */
 .prompt-text {
   font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
   font-size: 13px;
@@ -295,23 +613,6 @@ select.pill {
   flex-direction: column;
   gap: 4px;
   max-width: 75ch;
-}
-
-.save-bar .button {
-  background: var(--control-active);
-  box-shadow: var(--shadow);
-}
-
-.save-name {
-  font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.save-hint {
-  color: var(--fg-muted);
-  font-size: 12px;
 }
 
 .save-form {
@@ -635,8 +936,10 @@ select.pill {
     margin: 15mm;
   }
 
-  .stage,
-  .panel,
+  .top,
+  .work,
+  .bar,
+  .popover-panel,
   .no-print,
   .dialog-head {
     display: none !important;
@@ -732,10 +1035,276 @@ select.pill {
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 12px 8px 24px 0;
+  padding: 28px var(--gutter-right) 32px 32px;
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: 24px;
+}
+
+.panel-head h2 {
+  margin-top: 6px;
+  font-size: 30px;
+  letter-spacing: -0.022em;
+  line-height: 1.1;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.step > .subhead:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.subhead {
+  margin-top: 8px;
+  padding-top: 20px;
+  border-top: 1px solid var(--hairline);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.012em;
+}
+
+/* Karten für grundlegende Varianten */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.cards button {
+  appearance: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  padding: 12px 6px 11px;
+  border: 0;
+  border-radius: 16px;
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--hairline);
+  color: var(--fg);
+  font: inherit;
+  cursor: pointer;
+}
+
+.cards button[aria-checked='true'] {
+  box-shadow: inset 0 0 0 2.5px var(--accent);
+}
+
+.cards svg {
+  width: 84px;
+  max-width: 100%;
+  height: 38px;
+  margin-bottom: 6px;
+  fill: var(--track);
+}
+
+.cards button[aria-checked='true'] svg {
+  fill: var(--fg);
+}
+
+.cards span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.cards small {
+  color: var(--fg-muted);
+  font-size: 12px;
+}
+
+/* Zeilen zum Antippen: Unterlagen und Ausgaben */
+.rows {
+  display: flex;
+  flex-direction: column;
+  border-radius: 16px;
+  box-shadow: inset 0 0 0 1px var(--hairline);
+  overflow: hidden;
+}
+
+.row {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 11px 14px;
+  border: 0;
+  border-bottom: 1px solid var(--hairline);
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.row:last-child {
+  border-bottom: 0;
+}
+
+.row:hover {
+  background: var(--control);
+}
+
+.row:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.row > .icon {
+  width: 14px;
+  height: 14px;
+  color: var(--fg-muted);
+}
+
+.row-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--control);
+}
+
+.row.main .row-icon {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.row-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.row-text b {
+  font-weight: 500;
+}
+
+.row-text small {
+  color: var(--fg-muted);
+  font-size: 12.5px;
+}
+
+/* ── Fußleiste ─────────────────────────────────────────────────────────── */
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 12px 28px;
+  padding: 12px var(--gutter-right) calc(12px + env(safe-area-inset-bottom, 0px)) max(30px, var(--gutter-left));
+  border-top: 1px solid var(--hairline);
+}
+
+.bar-figures {
+  display: flex;
+  gap: 32px;
+  min-width: 0;
+}
+
+.bar-figures dt,
+.bar-price small {
+  display: block;
+  color: var(--fg-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.bar-figures dd {
+  font-size: 16px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.bar-figures dd small {
+  color: var(--fg-muted);
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.hint {
+  appearance: none;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--notice-bg);
+  color: var(--note);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.hint::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.hint.none {
+  padding-inline: 0;
+  background: transparent;
+  color: var(--fg-muted);
+  font-weight: 400;
+  cursor: default;
+}
+
+.hint.none::before {
+  display: none;
+}
+
+.bar-end {
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 22px;
+  min-width: 0;
+}
+
+.bar-price {
+  text-align: right;
+}
+
+.bar-price b {
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.bar-price b span {
+  color: var(--fg-muted);
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.bar-price .bar-brief,
+.bar-nav .narrow {
+  display: none;
+}
+
+.bar-nav {
+  display: flex;
+  gap: 8px;
 }
 
 .eyebrow {
@@ -810,6 +1379,19 @@ h2 {
   border-bottom: 1px solid var(--hairline);
 }
 
+.section-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-weight: 500;
+}
+
+.section-title small {
+  color: var(--fg-muted);
+  font-size: 12.5px;
+  font-weight: 400;
+}
+
 .section {
   border-top: 1px solid var(--hairline);
 }
@@ -818,7 +1400,7 @@ h2 {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 0;
+  padding: 14px 0;
   list-style: none;
   cursor: pointer;
 }
@@ -1173,31 +1755,141 @@ input[type='range']:disabled {
   }
 }
 
-/* Schmal: Bühne oben, Konfiguration darunter, beide in einer Bildschirmhöhe. */
-@media (max-width: 860px) {
-  .app {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(220px, 42%) minmax(0, 1fr);
-    gap: 16px;
+/* Mittlere Breite: Schritte in einer eigenen Zeile, weniger Kennwerte. */
+@media (max-width: 1320px) {
+  .top {
+    grid-template-columns: minmax(0, 1fr) auto;
   }
 
-  .panel {
-    padding: 4px 0 24px;
+  .steps {
+    grid-row: 2;
+    grid-column: 1 / -1;
+    justify-self: center;
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
   }
 
-  h1 {
-    font-size: 26px;
+  .bar-figures div:nth-child(n + 3) {
+    display: none;
+  }
+
+  .work {
+    grid-template-columns: minmax(0, 1fr) 400px;
   }
 
   .stage-hint {
     display: none;
   }
+}
+
+/* Schmal: Bühne oben, Konfiguration darunter, alles in einer Bildschirmhöhe. */
+@media (max-width: 860px) {
+  .work {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(200px, 38%) minmax(0, 1fr);
+  }
+
+  .stage {
+    margin: 12px var(--gutter-right) 0 var(--gutter-left);
+    border-radius: 22px;
+  }
+
+  .stage-head,
+  .brand,
+  .doc-status,
+  .bar-figures,
+  .bar-price > small:first-child,
+  .bar-nav .wide,
+  #step-back {
+    display: none;
+  }
 
   .stage-tools {
-    top: 12px;
-    right: 12px;
-    left: 12px;
-    flex-wrap: wrap;
-    justify-content: flex-end;
+    bottom: 10px;
+  }
+
+  .tool {
+    padding: 6px 10px;
+  }
+
+  .toolbar > i {
+    margin: 0 1px;
+  }
+
+  .steps {
+    justify-self: stretch;
+    padding: 0;
+    gap: 6px;
+    background: transparent;
+  }
+
+  .steps button {
+    padding: 6px 13px;
+    background: var(--control);
+  }
+
+  .steps em {
+    display: none;
+  }
+
+  .steps [aria-current='step'] {
+    background: var(--fg);
+    color: var(--bg);
+    box-shadow: none;
+  }
+
+  .panel {
+    padding: 20px var(--gutter-right) 24px var(--gutter-left);
+    gap: 18px;
+  }
+
+  .panel-head .eyebrow {
+    display: none;
+  }
+
+  .panel-head h2 {
+    margin-top: 0;
+    font-size: 24px;
+  }
+
+  .bar {
+    padding-left: var(--gutter-left);
+    gap: 12px;
+  }
+
+  .bar-end {
+    gap: 12px;
+  }
+
+  .bar-price {
+    order: -1;
+    text-align: left;
+  }
+
+  .bar {
+    flex-direction: row-reverse;
+  }
+
+  .bar-end {
+    flex-direction: row;
+    justify-content: space-between;
+  }
+
+  .bar-price b {
+    font-size: 18px;
+  }
+
+  .bar-price .bar-brief,
+  .bar-nav .narrow {
+    display: block;
+  }
+
+  .hint.none {
+    display: none;
+  }
+
+  .top-end .button span {
+    display: none;
   }
 }

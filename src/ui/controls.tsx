@@ -1,16 +1,24 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { useLocale } from '../i18n/context';
 
-/** Aufklappbarer Abschnitt der Konfiguration. */
-export function Section({ title, open, children }: { title: string; open?: boolean; children: ReactNode }) {
+/** Aufklappbare Gruppe für seltener gebrauchte Einstellungen eines Schritts. */
+export function More({ title, hint, children }: { title: string; hint?: string; children: ReactNode }) {
   return (
-    <details className="section" open={open}>
+    <details className="section">
       <summary>
-        <h2>{title}</h2>
+        <span className="section-title">
+          {title}
+          {hint && <small>{hint}</small>}
+        </span>
       </summary>
       <div className="section-body">{children}</div>
     </details>
   );
+}
+
+/** Zwischenüberschrift innerhalb eines Schritts. */
+export function Subhead({ children }: { children: ReactNode }) {
+  return <h3 className="subhead">{children}</h3>;
 }
 
 export function Field({ label, value, note, children }: { label: string; value?: string; note?: string; children: ReactNode }) {
@@ -98,6 +106,33 @@ function Choice<T extends string | number>({ id, label, value, options, note, on
             onClick={() => onChange(o.id)}
           >
             {t(o.name)}
+          </button>
+        ))}
+      </div>
+    </Field>
+  );
+}
+
+interface CardsProps<T extends string> {
+  id: string;
+  label: string;
+  value: T;
+  /** Der Name ist ein Ausgangstext und wird hier übersetzt; der Zusatz ist schon übersetzt. */
+  options: readonly { id: T; name: string; hint: string; picture: ReactNode }[];
+  onChange: (value: T) => void;
+}
+
+/** Auswahl einer grundlegenden Variante über Karten mit Bild. */
+export function Cards<T extends string>({ id, label, value, options, onChange }: CardsProps<T>) {
+  const { t } = useLocale();
+  return (
+    <Field label={label}>
+      <div className="cards" role="radiogroup" aria-label={label} id={id}>
+        {options.map((o) => (
+          <button key={o.id} type="button" id={`${id}-${o.id}`} role="radio" aria-checked={o.id === value} onClick={() => onChange(o.id)}>
+            {o.picture}
+            <span>{t(o.name)}</span>
+            <small>{o.hint}</small>
           </button>
         ))}
       </div>

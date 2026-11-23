@@ -12,7 +12,13 @@ Konfigurationen lassen sich unter einem Namen im Browser speichern, wieder laden
 als Datei sichern und auf einem anderen Gerät einlesen. Über „Link teilen" entsteht ein Link, der die
 Konfiguration selbst enthält: Jeder mit dem Link kann sie öffnen, ohne Konto und ohne Server.
 
-Die Oberfläche gibt es in Deutsch, Englisch und Slowakisch, umschaltbar über der 3D-Ansicht. Angebot,
+Die Bedienung führt in fünf Schritten von der Aufgabe (Last, Einsatz) über Fahrzeug, Fahrwerk und Aufbau zum
+Ergebnis. Die Kopfzeile zeigt die Schritte, den Namen der Konfiguration mit Speicherstand, Teilen und die
+Sprache. Eine Fußleiste nennt laufend die Folgen jeder Änderung: Eigengewicht, Gesamtgewicht, Radlast,
+Zugkraftbedarf, Richtpreis und die Zahl der Hinweise. Was nur die Darstellung betrifft (Maße, Ladung,
+Ansichten, Lenkeinschlag, Deichsel hoch), liegt als Werkzeugleiste an der 3D-Ansicht.
+
+Die Oberfläche gibt es in Deutsch, Englisch und Slowakisch, umschaltbar in der Kopfzeile. Angebot,
 Zusammenfassung, Stückliste und die Bauteilnamen im STEP-Modell erscheinen in der gewählten Sprache, Zahlen
 in der jeweiligen Landesschreibweise.
 
@@ -82,7 +88,8 @@ aufgebaut, und jedes muss über Berührungen am Rahmen hängen (`src/cad/connect
 - `src/trailer/bom.ts`: fasst gleiche Bauteile zur Stückliste zusammen.
 - `src/cad/`: STEP-Export über einen CAD-Kern (OpenCascade), der erst beim Export geladen wird.
 - `src/viewer/`: 3D-Bühne mit Kamera, Licht und Maßlinien (Three.js).
-- `src/ui/`, `src/App.tsx`, `src/styles.css`: Oberfläche.
+- `src/App.tsx`: Zustand und Zusammenspiel; `src/ui/TopBar.tsx`, `StageTools.tsx`, `StatusBar.tsx`: Kopfzeile,
+  Werkzeugleiste und Fußleiste; `src/ui/steps/`: je eine Datei pro Schritt; `src/styles.css`: Gestaltung.
 
 ## Hinweis
 

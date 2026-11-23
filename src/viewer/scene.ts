@@ -6,7 +6,16 @@ import { buildTrailer, type TrailerBuild } from '../trailer/buildTrailer';
 import type { Derived, TrailerConfig } from '../trailer/config';
 
 const MM = 0.001;
-const VIEW_DIRECTION = new THREE.Vector3(0.85, 0.3, 0.9).normalize();
+
+export type ViewName = 'iso' | 'side' | 'top';
+
+/** Blickrichtungen vom Anhänger zur Kamera; die Deichsel zeigt jeweils nach rechts. */
+const VIEWS: Record<ViewName, THREE.Vector3> = {
+  iso: new THREE.Vector3(0.85, 0.3, 0.9).normalize(),
+  side: new THREE.Vector3(0, 0.07, 1).normalize(),
+  // Leicht geneigt, damit die Kamera nicht genau über dem Pol der Drehung steht.
+  top: new THREE.Vector3(0, 1, 0.03).normalize(),
+};
 
 /** Die 3D-Bühne: Renderer, Kamera, Licht, Anhänger und Maßlinien. */
 export class TrailerScene {
@@ -33,6 +42,8 @@ export class TrailerScene {
   /** Momentane Gelenkwinkel, damit Bewegungen über einen Neuaufbau hinweg weiterlaufen. */
   private angles: Record<string, number> = {};
   private frame = 0;
+  /** Zielrichtung eines laufenden Kameraschwenks. */
+  private flight: THREE.Vector3 | null = null;
 
   constructor(private readonly host: HTMLElement) {
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -68,6 +79,8 @@ export class TrailerScene {
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.08;
     this.controls.maxPolarAngle = Math.PI / 2 + 0.3;
+    // Greift der Nutzer ein, endet ein laufender Schwenk.
+    this.controls.addEventListener('start', () => (this.flight = null));
 
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(host);
@@ -157,8 +170,19 @@ export class TrailerScene {
   }
 
   resetView() {
-    this.camera.position.copy(this.controls.target).addScaledVector(VIEW_DIRECTION, this.fitDistance);
+    this.flight = null;
+    this.camera.position.copy(this.controls.target).addScaledVector(VIEWS.iso, this.fitDistance);
     this.controls.update();
+  }
+
+  /** Schwenkt die Kamera in eine der festen Ansichten. */
+  setView(view: ViewName) {
+    if (this.reducedMotion) {
+      this.camera.position.copy(this.controls.target).addScaledVector(VIEWS[view], this.fitDistance);
+      this.controls.update();
+      return;
+    }
+    this.flight = VIEWS[view];
   }
 
   dispose() {
@@ -179,7 +203,24 @@ export class TrailerScene {
     this.labels.domElement.remove();
   }
 
+  private fly() {
+    if (!this.flight) return;
+    const offset = this.camera.position.clone().sub(this.controls.target);
+    const distance = offset.length();
+    const direction = offset.normalize();
+    const angle = direction.angleTo(this.flight);
+    const gap = this.fitDistance - distance;
+    if (angle < 0.003 && Math.abs(gap) < 0.01) {
+      this.camera.position.copy(this.controls.target).addScaledVector(this.flight, this.fitDistance);
+      this.flight = null;
+      return;
+    }
+    const turn = new THREE.Quaternion().slerp(new THREE.Quaternion().setFromUnitVectors(direction, this.flight), 0.16);
+    this.camera.position.copy(this.controls.target).addScaledVector(direction.applyQuaternion(turn), distance + gap * 0.16);
+  }
+
   private tick() {
+    this.fly();
     if (this.trailer) {
       for (const [name, joint] of Object.entries(this.trailer.joints)) {
         const delta = joint.angle - this.angles[name];
