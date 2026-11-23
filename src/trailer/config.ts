@@ -1,12 +1,13 @@
 /**
- * Parameter und Regelwerk des Konfigurators.
+ * Parameter des Konfigurators und die Auslegung des Fahrwerks.
  *
- * Alle Längen in Millimetern, Lasten in Tonnen bzw. Kilogramm. Die Regeln sind
- * bewusst einfache Faustregeln für das Anschauungsmodell und ersetzen keine
- * technische Auslegung.
+ * Alle Längen in Millimetern, Lasten in Tonnen bzw. Kilogramm. Die Auslegung
+ * folgt bewusst einfachen Faustregeln für das Anschauungsmodell und ersetzt
+ * keine technische Auslegung. Das Regelwerk dazu steht in rules.ts.
  */
 
-import { msg, type Msg } from '../i18n';
+import { RULE_DATA } from '../data';
+import { ceilTo, clamp, roundTo } from './math';
 
 /** Auswahllisten mit Anzeigenamen, gemeinsam genutzt von Bedienung und Zusammenfassung. */
 export const OPTIONS = {
@@ -257,23 +258,8 @@ export interface TrailerConfig {
   notes: string;
 }
 
-export const LIMITS = {
-  payloadT: { min: 2, max: 48, step: 1 },
-  axles: { min: 2, max: 4 },
-  lengthMm: { min: 2000, max: 12000, step: 100 },
-  widthMm: { min: 1200, max: 3000, step: 50 },
-  deckHeightMm: { min: 400, max: 1800, step: 10 },
-  steeringDeg: { min: -60, max: 60, step: 1 },
-  bedHeightMm: { min: 180, max: 800, step: 10 },
-  roofClearMm: { min: 1000, max: 2600, step: 50 },
-  speedKmh: { min: 2, max: 40, step: 1 },
-  slopePct: { min: 0, max: 15, step: 1 },
-  obstacleMm: { min: 0, max: 150, step: 5 },
-  loadLengthMm: { min: 200, max: 12000, step: 100 },
-  loadWidthMm: { min: 200, max: 3000, step: 50 },
-  loadHeightMm: { min: 100, max: 3000, step: 50 },
-  trailersInTrain: { min: 1, max: 6, step: 1 },
-} as const;
+/** Einstellbereiche der Zahlenwerte; gepflegt in src/data/rules.json. */
+export const LIMITS = RULE_DATA.limits;
 
 export const COLORS = [
   { id: 'ral3020', name: 'Verkehrsrot', ral: 'RAL 3020', hex: '#c8131b' },
@@ -356,26 +342,22 @@ export const DEFAULT_CONFIG: TrailerConfig = {
   notes: '',
 };
 
+// Die folgenden Kennzahlen stehen in src/data/rules.json und lassen sich dort pflegen.
+
 /** Tragfähigkeit einer Achslinie mit Pendelachsen (4 Räder). */
-export const MAX_AXLE_LOAD_T = 12;
+export const MAX_AXLE_LOAD_T = RULE_DATA.axles.maxAxleLoadT;
 /** Bis zu dieser Achslast genügt eine Starrachse mit 2 Rädern. */
-export const RIGID_AXLE_LOAD_T = 5;
+export const RIGID_AXLE_LOAD_T = RULE_DATA.axles.rigidAxleLoadT;
 
 /**
  * Lenkungsarten: Vorder- und Hinterachsen sitzen entweder auf einem Drehschemel
  * ('bogie'), lenken je Rad bzw. Pendelachse um einen eigenen Zapfen ('knuckle')
  * oder sind starr ('fixed'). maxDeg begrenzt den Lenkeinschlag.
  */
-export const STEERING: Record<Steering, { front: 'bogie' | 'knuckle'; rear: 'bogie' | 'knuckle' | 'fixed'; maxDeg: number }> = {
-  turntable: { front: 'bogie', rear: 'fixed', maxDeg: 60 },
-  doubleTurntable: { front: 'bogie', rear: 'bogie', maxDeg: 35 },
-  ackermann2: { front: 'knuckle', rear: 'fixed', maxDeg: 40 },
-  ackermann4: { front: 'knuckle', rear: 'knuckle', maxDeg: 35 },
-  allWheel: { front: 'knuckle', rear: 'knuckle', maxDeg: 35 },
-};
+export const STEERING = RULE_DATA.steering as unknown as Record<Steering, { front: 'bogie' | 'knuckle'; rear: 'bogie' | 'knuckle' | 'fixed'; maxDeg: number }>;
 
 /** Eigenschaften der Bereifungsarten. */
-export const TYRES: Record<
+export const TYRES = RULE_DATA.tyres as unknown as Record<
   Tyre,
   {
     /** Tragfähigkeit im Verhältnis zu einem Vollgummirad gleichen Durchmessers. */
@@ -389,37 +371,22 @@ export const TYRES: Record<
     /** Radmasse in kg bei 1 m Durchmesser, skaliert mit dem Quadrat. */
     massFactor: number;
   }
-> = {
-  solid: { capacity: 1, widthRatio: 0.42, maxSpeedKmh: 16, rolling: 0.02, massFactor: 260 },
-  superElastic: { capacity: 0.85, widthRatio: 0.42, maxSpeedKmh: 25, rolling: 0.022, massFactor: 230 },
-  pneumatic: { capacity: 0.5, widthRatio: 0.36, maxSpeedKmh: 40, rolling: 0.025, massFactor: 110 },
-  polyurethane: { capacity: 1.4, widthRatio: 0.36, maxSpeedKmh: 6, rolling: 0.012, massFactor: 300 },
-};
+>;
 
-/** Raddurchmesser in mm mit Tragfähigkeit eines Vollgummirads in kg. */
-const WHEEL_SIZES: [diameterMm: number, capacityKg: number][] = [
-  [250, 600],
-  [310, 1100],
-  [400, 1900],
-  [500, 3600],
-  [560, 4600],
-  [650, 6000],
-  [760, 8000],
-];
+/** Raddurchmesser in mm mit Tragfähigkeit eines Vollgummirads in kg, aufsteigend. */
+const WHEEL_SIZES = RULE_DATA.wheelSizes;
 
 /** Bauhöhe der Federung zwischen Rahmen und Achse in mm. */
-export const SPRING_HEIGHT_MM: Record<Suspension, number> = { none: 0, rubber: 60, leaf: 100, air: 160 };
+export const SPRING_HEIGHT_MM = RULE_DATA.springHeightMm as unknown as Record<Suspension, number>;
 
 /** Mehr- oder Mindergewicht des Belags gegenüber Stahlblech in kg/m², für die Überschlagsrechnung. */
-const DECK_KG_PER_M2: Record<DeckMaterial, number> = {
-  steel: 0,
-  checker: 0,
-  pine: -40,
-  hardwood: -30,
-  plywood: -45,
-  rubber: 12,
-  none: -63,
-};
+const DECK_KG_PER_M2 = RULE_DATA.deckKgPerM2 as unknown as Record<DeckMaterial, number>;
+
+/** Zuschlag auf den Rollwiderstand je nach Untergrund. */
+export const GROUND_FACTOR = RULE_DATA.groundFactor as unknown as Record<Ground, number>;
+
+/** Schwellen, ab denen Hinweise erscheinen. */
+export const ADVICE_LIMITS = RULE_DATA.advice;
 
 export interface Derived {
   axleType: 'pendel' | 'starr';
@@ -442,36 +409,14 @@ export interface Derived {
   minDeckHeightMm: number;
 }
 
-export type AdjustedField =
-  | 'axles'
-  | 'lengthMm'
-  | 'widthMm'
-  | 'deckHeightMm'
-  | 'steeringDeg'
-  | 'bedHeightMm'
-  | 'rearWheels'
-  | 'ramp'
-  | 'minLengthMm'
-  | 'maxLengthMm';
-
-export interface Resolved {
-  config: TrailerConfig;
-  derived: Derived;
-  /** Felder, die das Regelwerk gegenüber der Eingabe angehoben hat. */
-  adjustments: Partial<Record<AdjustedField, Msg>>;
-}
-
-const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
-const roundTo = (v: number, step: number) => Math.round(v / step) * step;
-const ceilTo = (v: number, step: number) => Math.ceil(v / step - 1e-9) * step;
 
 /** Kleinstes Rad, das die Radlast mit der gewählten Bereifung trägt; sonst das größte. */
 function wheelFor(wheelLoadKg: number, tyre: Tyre): { diameterMm: number; capacityKg: number } {
   const factor = TYRES[tyre].capacity;
-  for (const [diameterMm, capacityKg] of WHEEL_SIZES) {
+  for (const { diameterMm, capacityKg } of WHEEL_SIZES) {
     if (capacityKg * factor >= wheelLoadKg) return { diameterMm, capacityKg: capacityKg * factor };
   }
-  const [diameterMm, capacityKg] = WHEEL_SIZES[WHEEL_SIZES.length - 1];
+  const { diameterMm, capacityKg } = WHEEL_SIZES[WHEEL_SIZES.length - 1];
   return { diameterMm, capacityKg: capacityKg * factor };
 }
 
@@ -579,120 +524,6 @@ export function computeDerived(c: TrailerConfig): Derived {
     minWidthMm,
     minDeckHeightMm,
   };
-}
-
-/**
- * Macht aus der gewünschten Konfiguration eine baubare: Werte werden auf die
- * Grenzen begrenzt und dort angehoben, wo Traglast und Fahrwerk es verlangen.
- * Die Eingabe bleibt unverändert, damit ein angehobener Wert wieder zurückgeht,
- * sobald die Ursache entfällt.
- */
-export function resolve(requested: TrailerConfig): Resolved {
-  const limit = (key: keyof typeof LIMITS & keyof TrailerConfig, value: number) => {
-    const l = LIMITS[key] as { min: number; max: number; step?: number };
-    return clamp(roundTo(value, l.step ?? 1), l.min, l.max);
-  };
-  const c: TrailerConfig = {
-    ...requested,
-    payloadT: limit('payloadT', requested.payloadT),
-    axles: limit('axles', requested.axles),
-    lengthMm: limit('lengthMm', requested.lengthMm),
-    widthMm: limit('widthMm', requested.widthMm),
-    deckHeightMm: limit('deckHeightMm', requested.deckHeightMm),
-    steeringDeg: clamp(Math.round(requested.steeringDeg), -STEERING[requested.steering].maxDeg, STEERING[requested.steering].maxDeg),
-    speedKmh: limit('speedKmh', requested.speedKmh),
-    slopePct: limit('slopePct', requested.slopePct),
-    obstacleMm: limit('obstacleMm', requested.obstacleMm),
-    trailersInTrain: limit('trailersInTrain', requested.trailersInTrain),
-    // Ein Kantenschutz setzt einen Belag aus Holz oder Platten voraus.
-    edgeProtection: hasBoardDeck(requested.deck) ? requested.edgeProtection : 'none',
-    roofClearMm: limit('roofClearMm', requested.roofClearMm),
-  };
-  const adjustments: Resolved['adjustments'] = {};
-
-  // Bordwände, Kantenschutz und Dachaufbau gibt es nur auf der durchgehenden Plattform.
-  if (c.body !== 'platform') {
-    c.wallType = 'none';
-    c.roof = 'none';
-    c.edgeProtection = 'none';
-  }
-  if (c.body === 'lowbed') {
-    if (c.rearWheels === 'outside' && STEERING[c.steering].rear !== 'fixed') {
-      c.rearWheels = 'inside';
-      adjustments.rearWheels = msg('Gelenkte Hinterachsen laufen innen unter einem Podest.');
-    }
-    if (c.ramp === 'rear' && c.rearWheels === 'inside') {
-      c.ramp = 'none';
-      adjustments.ramp = msg('Eine Auffahrklappe hinten setzt außen laufende Hinterräder voraus.');
-    }
-  }
-
-  // Eingeschlagen läge das Gelenk unter der Ladefläche, die Deichsel könnte nicht hochklappen.
-  if (c.drawbarUp && c.steeringDeg !== 0) {
-    c.steeringDeg = 0;
-    adjustments.steeringDeg = msg('Hochgeklappt steht die Deichsel in Geradeausstellung.');
-  }
-
-  const minAxles = minAxlesFor(c.payloadT);
-  if (c.axles < minAxles) {
-    c.axles = minAxles;
-    adjustments.axles = msg('Ab {from} t Traglast mindestens {axles} Achsen.', { from: (minAxles - 1) * MAX_AXLE_LOAD_T + 1, axles: minAxles });
-  }
-
-  let derived = computeDerived(c);
-  for (let i = 0; i < 6; i++) {
-    let changed = false;
-    if (c.lengthMm < derived.minLengthMm) {
-      c.lengthMm = derived.minLengthMm;
-      adjustments.lengthMm = msg('Auf die Mindestlänge für dieses Fahrwerk angehoben.');
-      changed = true;
-    }
-    if (c.widthMm < derived.minWidthMm) {
-      c.widthMm = derived.minWidthMm;
-      adjustments.widthMm = msg('Auf die Mindestbreite für diese Bereifung angehoben.');
-      changed = true;
-    }
-    if (c.deckHeightMm < derived.minDeckHeightMm) {
-      c.deckHeightMm = derived.minDeckHeightMm;
-      adjustments.deckHeightMm = msg('Auf die Mindesthöhe für Räder, Federung und Rahmen angehoben.');
-      changed = true;
-    }
-    if (!changed) break;
-    derived = computeDerived(c);
-  }
-
-  if (c.body === 'lowbed') {
-    // Das Tiefbett liegt spürbar unter den Podesten und hat noch Bodenfreiheit.
-    const bed = clamp(roundTo(c.bedHeightMm, 10), LIMITS.bedHeightMm.min, Math.min(LIMITS.bedHeightMm.max, c.deckHeightMm - 200));
-    if (bed !== c.bedHeightMm) {
-      if (bed < c.bedHeightMm) adjustments.bedHeightMm = msg('Das Tiefbett liegt mindestens 200 mm unter den Podesten.');
-      c.bedHeightMm = bed;
-    }
-  }
-
-  if (c.body === 'longload') {
-    // Das Langrohr verbindet zwei Fahrgestellmodule; ausziehen lässt es sich höchstens um seine nutzbare Länge.
-    const raster = c.rasterMm;
-    const module = moduleLengthMm(derived);
-    const shortest = ceilTo(2 * module + 1500, 100);
-    const min = clamp(roundTo(c.minLengthMm, 100), shortest, LIMITS.lengthMm.max);
-    if (min !== c.minLengthMm) adjustments.minLengthMm = msg('Auf die kürzeste Länge für zwei Fahrgestellmodule angehoben.');
-    c.minLengthMm = min;
-    const reachMm = Math.floor((min - 2 * module - 600) / raster) * raster;
-    const longest = Math.min(LIMITS.lengthMm.max, min + Math.max(0, reachMm));
-    const max = clamp(min + Math.round((c.maxLengthMm - min) / raster) * raster, min, longest);
-    if (max < c.maxLengthMm) adjustments.maxLengthMm = msg('Auf den Auszug begrenzt, den das Langrohr bei dieser Mindestlänge zulässt.');
-    c.maxLengthMm = max;
-    c.lengthMm = clamp(min + Math.round((c.lengthMm - min) / raster) * raster, min, max);
-    derived = computeDerived(c);
-  }
-
-  // Die Last passt höchstens auf die Ladefläche.
-  c.loadLengthMm = clamp(roundTo(c.loadLengthMm, 100), LIMITS.loadLengthMm.min, c.lengthMm);
-  c.loadWidthMm = clamp(roundTo(c.loadWidthMm, 50), LIMITS.loadWidthMm.min, c.widthMm);
-  c.loadHeightMm = limit('loadHeightMm', c.loadHeightMm);
-
-  return { config: c, derived, adjustments };
 }
 
 export interface AxleLayout {

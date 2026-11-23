@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_CONFIG, resolve } from '../trailer/config';
+import { DEFAULT_CONFIG } from '../trailer/config';
+import { resolve } from '../trailer/rules';
 import { clearSaved, deleteSaved, exportSaved, importSaved, listSaved, loadDraft, sanitizeConfig, saveConfig, saveDraft, type KeyValueStore } from './saved';
 
 function memoryStore(): KeyValueStore & { data: Map<string, string> } {

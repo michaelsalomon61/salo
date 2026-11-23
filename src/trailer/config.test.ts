@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_CONFIG, LIMITS, axleLayout, resolve } from './config';
+import { DEFAULT_CONFIG, LIMITS, axleLayout } from './config';
+import { resolve } from './rules';
 
 describe('resolve', () => {
   it('lässt die Standardkonfiguration unverändert', () => {

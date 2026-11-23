@@ -6,7 +6,8 @@ import { clearSaved, deleteSaved, importSaved, listSaved, loadDraft, saveConfig,
 import { decodeShare, shareUrl } from './storage/share';
 import { advise, performance } from './trailer/advice';
 import { bomToCsv, buildBom } from './trailer/bom';
-import { COLORS, DEFAULT_CONFIG, STEERING, optionName, resolve, type TrailerConfig } from './trailer/config';
+import { COLORS, DEFAULT_CONFIG, STEERING, optionName, type TrailerConfig } from './trailer/config';
+import { resolve } from './trailer/rules';
 import { trailerParts } from './trailer/parts';
 import { estimateQuote, quoteToCsv } from './trailer/pricing';
 import { buildImagePrompt } from './trailer/prompt';

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_CONFIG, OPTIONS, resolve, type TrailerConfig } from './config';
+import { DEFAULT_CONFIG, OPTIONS, type TrailerConfig } from './config';
+import { resolve } from './rules';
 import { trailerParts } from './parts';
 import { estimateQuote, partPriceEur, quoteToCsv } from './pricing';
 

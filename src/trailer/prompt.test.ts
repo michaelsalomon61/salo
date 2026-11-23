@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { locale, untranslated } from '../i18n';
 import { buildBom } from './bom';
-import { DEFAULT_CONFIG, resolve, type TrailerConfig } from './config';
+import { DEFAULT_CONFIG, type TrailerConfig } from './config';
+import { resolve } from './rules';
 import { trailerParts } from './parts';
 import { buildImagePrompt } from './prompt';
 

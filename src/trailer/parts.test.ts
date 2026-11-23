@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { locale } from '../i18n';
 import { advise } from './advice';
 import { buildBom } from './bom';
-import { DEFAULT_CONFIG, OPTIONS, resolve, type TrailerConfig } from './config';
+import { DEFAULT_CONFIG, OPTIONS, type TrailerConfig } from './config';
+import { resolve } from './rules';
 import { partMassKg, trailerParts } from './parts';
 import { describeConfig } from './summary';
 

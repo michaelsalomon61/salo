@@ -5,7 +5,8 @@
  */
 import { advise } from '../trailer/advice';
 import { bomToCsv, buildBom } from '../trailer/bom';
-import { COLORS, DEFAULT_CONFIG, OPTIONS, resolve, type TrailerConfig } from '../trailer/config';
+import { COLORS, DEFAULT_CONFIG, OPTIONS, type TrailerConfig } from '../trailer/config';
+import { resolve } from '../trailer/rules';
 import { trailerParts } from '../trailer/parts';
 import { estimateQuote, quoteToCsv } from '../trailer/pricing';
 import { buildImagePrompt } from '../trailer/prompt';

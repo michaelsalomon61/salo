@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_CONFIG, resolve } from '../trailer/config';
+import { DEFAULT_CONFIG } from '../trailer/config';
+import { resolve } from '../trailer/rules';
 import { decodeShare, encodeShare, shareUrl } from './share';
 
 describe('Konfiguration als Link', () => {

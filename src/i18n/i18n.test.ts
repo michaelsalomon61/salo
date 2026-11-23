@@ -1,7 +1,8 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_CONFIG, resolve } from '../trailer/config';
+import { DEFAULT_CONFIG } from '../trailer/config';
+import { resolve } from '../trailer/rules';
 import { trailerParts } from '../trailer/parts';
 import { buildBom, bomToCsv } from '../trailer/bom';
 import { estimateQuote, quoteToCsv } from '../trailer/pricing';

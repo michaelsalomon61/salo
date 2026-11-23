@@ -1,0 +1,208 @@
+{
+  "hinweis": "Grenzwerte und Kennzahlen des Regelwerks. Längen in Millimetern, Lasten in Tonnen bzw. Kilogramm. Es sind Faustregeln für das Anschauungsmodell. Nach einer Änderung prüft 'npm test', ob die Datei vollständig und schlüssig ist.",
+  "limits": {
+    "hinweis": "Einstellbereiche der Schieberegler: kleinster und größter Wert sowie die Schrittweite.",
+    "payloadT": {
+      "min": 2,
+      "max": 48,
+      "step": 1
+    },
+    "axles": {
+      "min": 2,
+      "max": 4
+    },
+    "lengthMm": {
+      "min": 2000,
+      "max": 12000,
+      "step": 100
+    },
+    "widthMm": {
+      "min": 1200,
+      "max": 3000,
+      "step": 50
+    },
+    "deckHeightMm": {
+      "min": 400,
+      "max": 1800,
+      "step": 10
+    },
+    "steeringDeg": {
+      "min": -60,
+      "max": 60,
+      "step": 1
+    },
+    "bedHeightMm": {
+      "min": 180,
+      "max": 800,
+      "step": 10
+    },
+    "roofClearMm": {
+      "min": 1000,
+      "max": 2600,
+      "step": 50
+    },
+    "speedKmh": {
+      "min": 2,
+      "max": 40,
+      "step": 1
+    },
+    "slopePct": {
+      "min": 0,
+      "max": 15,
+      "step": 1
+    },
+    "obstacleMm": {
+      "min": 0,
+      "max": 150,
+      "step": 5
+    },
+    "loadLengthMm": {
+      "min": 200,
+      "max": 12000,
+      "step": 100
+    },
+    "loadWidthMm": {
+      "min": 200,
+      "max": 3000,
+      "step": 50
+    },
+    "loadHeightMm": {
+      "min": 100,
+      "max": 3000,
+      "step": 50
+    },
+    "trailersInTrain": {
+      "min": 1,
+      "max": 6,
+      "step": 1
+    }
+  },
+  "axles": {
+    "hinweis": "maxAxleLoadT: Tragfähigkeit einer Achslinie mit Pendelachsen (4 Räder). rigidAxleLoadT: Bis zu dieser Achslast genügt eine Starrachse mit 2 Rädern.",
+    "maxAxleLoadT": 12,
+    "rigidAxleLoadT": 5
+  },
+  "steering": {
+    "hinweis": "Je Lenkungsart: Vorder- und Hinterachsen auf Drehschemel (bogie), mit Lenkzapfen je Rad (knuckle) oder starr (fixed); maxDeg begrenzt den Lenkeinschlag.",
+    "turntable": {
+      "front": "bogie",
+      "rear": "fixed",
+      "maxDeg": 60
+    },
+    "doubleTurntable": {
+      "front": "bogie",
+      "rear": "bogie",
+      "maxDeg": 35
+    },
+    "ackermann2": {
+      "front": "knuckle",
+      "rear": "fixed",
+      "maxDeg": 40
+    },
+    "ackermann4": {
+      "front": "knuckle",
+      "rear": "knuckle",
+      "maxDeg": 35
+    },
+    "allWheel": {
+      "front": "knuckle",
+      "rear": "knuckle",
+      "maxDeg": 35
+    }
+  },
+  "tyres": {
+    "hinweis": "Je Bereifung: capacity = Tragfähigkeit im Verhältnis zu Vollgummi gleichen Durchmessers; widthRatio = Reifenbreite im Verhältnis zum Durchmesser; maxSpeedKmh = empfohlene Höchstgeschwindigkeit; rolling = Rollwiderstandsbeiwert auf glattem Boden; massFactor = Radmasse in kg bei 1 m Durchmesser (wächst mit dem Quadrat).",
+    "solid": {
+      "capacity": 1,
+      "widthRatio": 0.42,
+      "maxSpeedKmh": 16,
+      "rolling": 0.02,
+      "massFactor": 260
+    },
+    "superElastic": {
+      "capacity": 0.85,
+      "widthRatio": 0.42,
+      "maxSpeedKmh": 25,
+      "rolling": 0.022,
+      "massFactor": 230
+    },
+    "pneumatic": {
+      "capacity": 0.5,
+      "widthRatio": 0.36,
+      "maxSpeedKmh": 40,
+      "rolling": 0.025,
+      "massFactor": 110
+    },
+    "polyurethane": {
+      "capacity": 1.4,
+      "widthRatio": 0.36,
+      "maxSpeedKmh": 6,
+      "rolling": 0.012,
+      "massFactor": 300
+    }
+  },
+  "wheelSizes": {
+    "hinweis": "Lieferbare Raddurchmesser, aufsteigend, mit der Tragfähigkeit eines Vollgummirads in kg.",
+    "list": [
+      {
+        "diameterMm": 250,
+        "capacityKg": 600
+      },
+      {
+        "diameterMm": 310,
+        "capacityKg": 1100
+      },
+      {
+        "diameterMm": 400,
+        "capacityKg": 1900
+      },
+      {
+        "diameterMm": 500,
+        "capacityKg": 3600
+      },
+      {
+        "diameterMm": 560,
+        "capacityKg": 4600
+      },
+      {
+        "diameterMm": 650,
+        "capacityKg": 6000
+      },
+      {
+        "diameterMm": 760,
+        "capacityKg": 8000
+      }
+    ]
+  },
+  "springHeightMm": {
+    "hinweis": "Bauhöhe der Federung zwischen Rahmen und Achse.",
+    "none": 0,
+    "rubber": 60,
+    "leaf": 100,
+    "air": 160
+  },
+  "deckKgPerM2": {
+    "hinweis": "Mehr- oder Mindergewicht des Belags gegenüber Stahlblech in kg/m², für die Überschlagsrechnung.",
+    "steel": 0,
+    "checker": 0,
+    "pine": -40,
+    "hardwood": -30,
+    "plywood": -45,
+    "rubber": 12,
+    "none": -63
+  },
+  "groundFactor": {
+    "hinweis": "Zuschlag auf den Rollwiderstand je nach Untergrund.",
+    "smooth": 1,
+    "asphalt": 1.3,
+    "paving": 1.8,
+    "unpaved": 3
+  },
+  "advice": {
+    "hinweis": "Schwellen der Hinweise: obstacleShareOfWheel = größtes Hindernis als Anteil am Raddurchmesser; brakeAboveKmh = ab dieser Geschwindigkeit wird eine Betriebsbremse empfohlen; secureFromSlopePct = ab dieser Steigung Feststellbremse oder Keile; unbrakedTowRatio = ungebremste Anhängelast im Verhältnis zum Gewicht des Zugfahrzeugs.",
+    "obstacleShareOfWheel": 0.12,
+    "brakeAboveKmh": 10,
+    "secureFromSlopePct": 3,
+    "unbrakedTowRatio": 1.5
+  }
+}

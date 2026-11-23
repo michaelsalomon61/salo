@@ -2,7 +2,8 @@ import { createRequire } from 'node:module';
 import { beforeAll, describe, expect, it } from 'vitest';
 import * as replicad from 'replicad';
 import opencascade from 'replicad-opencascadejs';
-import { DEFAULT_CONFIG, resolve } from '../trailer/config';
+import { DEFAULT_CONFIG } from '../trailer/config';
+import { resolve } from '../trailer/rules';
 import { trailerParts } from '../trailer/parts';
 import { buildStepBlob, buildStepParts } from './step';
 

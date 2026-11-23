@@ -1,0 +1,254 @@
+{
+  "hinweis": "Preismodell auf Schätzbasis. Alle Beträge in Euro ohne Mehrwertsteuer; es sind Annahmen, keine Marktpreise. Nach einer Änderung prüft 'npm test', ob die Datei vollständig und schlüssig ist.",
+  "ratePerKg": {
+    "hinweis": "Fertigungspreis je Kilogramm nach Werkstoff: Material, Zuschnitt, Schweißen. 'default' gilt für Werkstoffe ohne eigenen Satz.",
+    "Stahl S355": 4.2,
+    "Hartholz": 2.2,
+    "Kiefer": 1.4,
+    "Birke, phenolharzbeschichtet": 2.6,
+    "Gummi, gerippt": 3.2,
+    "Aluminium-Hohlkammerprofil": 11,
+    "Aluminium": 11,
+    "default": 6
+  },
+  "parts": {
+    "hinweis": "Stückpreise für Zukaufteile. Es gilt der erste Eintrag, mit dessen Namen die Benennung des Bauteils beginnt; alles andere wird nach Gewicht gerechnet. 'per' legt die Bezugsgröße fest: piece = je Stück, m2 = je Quadratmeter, wheel = Rad (wächst mit dem Durchmesser), drum = Bremse (wächst mit dem Radius), slewRing = Grundpreis plus Betrag je Meter Durchmesser.",
+    "wheel": {
+      "referenceDiameterMm": 500,
+      "exponent": 1.7
+    },
+    "drum": {
+      "referenceRadiusMm": 105
+    },
+    "list": [
+      {
+        "name": "Rad Vollgummi",
+        "eur": 780,
+        "per": "wheel"
+      },
+      {
+        "name": "Rad Super-Elastic",
+        "eur": 900,
+        "per": "wheel"
+      },
+      {
+        "name": "Rad Luft",
+        "eur": 420,
+        "per": "wheel"
+      },
+      {
+        "name": "Rad Polyurethan",
+        "eur": 1250,
+        "per": "wheel"
+      },
+      {
+        "name": "Kugeldrehkranz",
+        "eur": 450,
+        "per": "slewRing",
+        "eurPerMeter": 600,
+        "fallbackEur": 1100
+      },
+      {
+        "name": "Lenkdrehkranz",
+        "eur": 420
+      },
+      {
+        "name": "Achsschenkel",
+        "eur": 180
+      },
+      {
+        "name": "Spurstange",
+        "eur": 160
+      },
+      {
+        "name": "Lenkschubstange",
+        "eur": 190
+      },
+      {
+        "name": "Koppelstange",
+        "eur": 240
+      },
+      {
+        "name": "Trommelbremse",
+        "eur": 480,
+        "per": "drum"
+      },
+      {
+        "name": "Elektromagnetbremse",
+        "eur": 650,
+        "per": "drum"
+      },
+      {
+        "name": "Membranbremszylinder",
+        "eur": 95
+      },
+      {
+        "name": "Radbremszylinder",
+        "eur": 60
+      },
+      {
+        "name": "Gummifederelement",
+        "eur": 85
+      },
+      {
+        "name": "Blattfederpaket",
+        "eur": 240
+      },
+      {
+        "name": "Luftfederbalg",
+        "eur": 310
+      },
+      {
+        "name": "Bordwand Drahtgitter",
+        "eur": 55,
+        "per": "m2"
+      },
+      {
+        "name": "Scharnier",
+        "eur": 9
+      },
+      {
+        "name": "Bordwandverschluss",
+        "eur": 18
+      },
+      {
+        "name": "Dachplane",
+        "eur": 28,
+        "per": "m2"
+      },
+      {
+        "name": "Dachblech",
+        "eur": 42,
+        "per": "m2"
+      },
+      {
+        "name": "Seitenplane",
+        "eur": 28,
+        "per": "m2"
+      },
+      {
+        "name": "Stirnplane",
+        "eur": 28,
+        "per": "m2"
+      },
+      {
+        "name": "Vorhangplane",
+        "eur": 45,
+        "per": "m2"
+      },
+      {
+        "name": "Schutzgitter",
+        "eur": 55,
+        "per": "m2"
+      },
+      {
+        "name": "Deichselfeder",
+        "eur": 190
+      },
+      {
+        "name": "Auflaufeinrichtung",
+        "eur": 420
+      },
+      {
+        "name": "Druckluftbehälter",
+        "eur": 180
+      },
+      {
+        "name": "Kupplungskopf",
+        "eur": 28
+      },
+      {
+        "name": "Hydraulikanschluss",
+        "eur": 35
+      },
+      {
+        "name": "Anschlussdose",
+        "eur": 30
+      },
+      {
+        "name": "Feststellbremse",
+        "eur": 260
+      },
+      {
+        "name": "Steckbolzenkupplung",
+        "eur": 140
+      },
+      {
+        "name": "Automatische Anhängerkupplung",
+        "eur": 620
+      },
+      {
+        "name": "Zurröse",
+        "eur": 14
+      },
+      {
+        "name": "Mehrkammer-Rückleuchte",
+        "eur": 75
+      },
+      {
+        "name": "Rückleuchte",
+        "eur": 35
+      },
+      {
+        "name": "Begrenzungsleuchte",
+        "eur": 18
+      },
+      {
+        "name": "Seitenmarkierungsleuchte",
+        "eur": 14
+      },
+      {
+        "name": "Kennzeichenhalter",
+        "eur": 12
+      },
+      {
+        "name": "Unterlegkeil doppelt",
+        "eur": 34
+      },
+      {
+        "name": "Unterlegkeil einfach",
+        "eur": 22
+      },
+      {
+        "name": "Keilhalter",
+        "eur": 16
+      },
+      {
+        "name": "Klappenscharnier",
+        "eur": 24
+      }
+    ]
+  },
+  "wiring": {
+    "hinweis": "Pauschale für die Elektrik je nach Beleuchtung.",
+    "none": 0,
+    "internal": 180,
+    "stvzo": 420
+  },
+  "brakeLines": {
+    "hinweis": "Pauschale für Bremsleitungen je nach Betriebsbremse.",
+    "none": 0,
+    "overrun": 120,
+    "air": 350,
+    "hydraulic": 220,
+    "electric": 160
+  },
+  "smallPartsShare": 0.02,
+  "paintPerKg": 0.45,
+  "assembly": {
+    "hinweis": "Montage und Endprüfung: Grundzeit plus Zeit je Einzelteil, zum Stundensatz.",
+    "baseHours": 8,
+    "hoursPerPiece": 0.1,
+    "ratePerHour": 78
+  },
+  "engineering": {
+    "hinweis": "Konstruktion und Auftragsabwicklung als Anteil der Herstellkosten; Zuschläge für Sonderbauform, Dachaufbau und besondere Lenkung.",
+    "base": 0.05,
+    "specialBody": 0.03,
+    "roof": 0.015,
+    "specialSteering": 0.02
+  },
+  "overheadShare": 0.2,
+  "vatShare": 0.19,
+  "spread": 0.15
+}

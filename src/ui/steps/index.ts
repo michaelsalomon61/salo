@@ -1,5 +1,6 @@
 import { msg, type Msg } from '../../i18n';
-import type { AdjustedField, Derived, TrailerConfig } from '../../trailer/config';
+import type { Derived, TrailerConfig } from '../../trailer/config';
+import type { AdjustedField } from '../../trailer/rules';
 
 export type StepId = 'task' | 'vehicle' | 'running' | 'body' | 'result';
 

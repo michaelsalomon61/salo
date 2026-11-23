@@ -10,7 +10,8 @@ import { createRequire } from 'node:module';
 import { beforeAll, describe, expect, it } from 'vitest';
 import * as replicad from 'replicad';
 import opencascade from 'replicad-opencascadejs';
-import { DEFAULT_CONFIG, resolve, type TrailerConfig } from '../trailer/config';
+import { DEFAULT_CONFIG, type TrailerConfig } from '../trailer/config';
+import { resolve } from '../trailer/rules';
 import { buildStepParts } from './step';
 
 const require = createRequire(import.meta.url);
