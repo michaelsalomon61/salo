@@ -22,6 +22,11 @@ Die Oberfläche gibt es in Deutsch, Englisch und Slowakisch, umschaltbar in der 
 Zusammenfassung, Stückliste und die Bauteilnamen im STEP-Modell erscheinen in der gewählten Sprache, Zahlen
 in der jeweiligen Landesschreibweise.
 
+Der Schritt „Ergebnis" ist eine eigene Seite: links das Modell mit den wichtigsten Kennwerten, in der Mitte
+die Unterlagen als Reiter (Angebot, Stückliste, Technische Daten, Hinweise), rechts die Liste zum Ausgeben
+und Weitergeben. Kurze Abläufe wie Speichern, Link teilen oder der E-Mail-Entwurf öffnen sich als kleines
+Fenster über der Seite.
+
 Aus der fertigen Konfiguration lassen sich sechs Ergebnisse erzeugen:
 
 - **Angebot**: Beschreibung der Konfiguration mit geschätztem Preis, ohne Adressdaten, druckbar und als PDF
@@ -89,7 +94,7 @@ aufgebaut, und jedes muss über Berührungen am Rahmen hängen (`src/cad/connect
 - `src/cad/`: STEP-Export über einen CAD-Kern (OpenCascade), der erst beim Export geladen wird.
 - `src/viewer/`: 3D-Bühne mit Kamera, Licht und Maßlinien (Three.js).
 - `src/App.tsx`: Zustand und Zusammenspiel; `src/ui/TopBar.tsx`, `StageTools.tsx`, `StatusBar.tsx`: Kopfzeile,
-  Werkzeugleiste und Fußleiste; `src/ui/steps/`: je eine Datei pro Schritt; `src/styles.css`: Gestaltung.
+  Werkzeugleiste und Fußleiste; `src/ui/steps/`: je eine Datei pro Schritt; `src/ui/result/`: die Ergebnisseite mit ihren Reitern; `src/styles.css`: Gestaltung.
 
 ## Hinweis
 

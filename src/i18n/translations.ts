@@ -571,6 +571,17 @@ const T: Record<string, [en: string, sk: string]> = {
   'Öffnet diese Konfiguration': ['Opens this configuration', 'Otvorí túto konfiguráciu'],
   'Für ChatGPT kopieren': ['Copy for ChatGPT', 'Kopírovať pre ChatGPT'],
 
+  // ── Ergebnisseite ────────────────────────────────────────────────────────
+  'Technische Daten': ['Technical data', 'Technické údaje'],
+  'Konfiguration ändern': ['Change configuration', 'Zmeniť konfiguráciu'],
+  'Angebot drucken': ['Print quote', 'Vytlačiť ponuku'],
+  'oder als PDF speichern': ['or save as PDF', 'alebo uložiť ako PDF'],
+  'Tabelle als CSV': ['Table as CSV', 'Tabuľka ako CSV'],
+  'für Angebot, Stückliste oder Daten': ['for quote, parts list or data', 'pre ponuku, kusovník alebo údaje'],
+  'in {count} Positionen': ['in {count} items', 'v {count} položkách'],
+  'Zu dieser Konfiguration gibt es keine Hinweise.': ['There are no notes on this configuration.', 'K tejto konfigurácii nie sú žiadne upozornenia.'],
+  Schließen: ['Close', 'Zavrieť'],
+
   // ── KI-Bildprompt ────────────────────────────────────────────────────────
   'KI-Bildprompt': ['AI image prompt', 'Prompt pre AI obrázok'],
   'Fotorealistisches Bild der Konfiguration mit ChatGPT oder einem anderen Bildgenerator erzeugen': ['Create a photorealistic image of the configuration with ChatGPT or another image generator', 'Vytvorte fotorealistický obrázok konfigurácie pomocou ChatGPT alebo iného generátora obrázkov'],

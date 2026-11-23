@@ -109,6 +109,11 @@ dd {
   grid-template-columns: minmax(0, 1fr) 432px;
 }
 
+/* Die Bühne und ihre Begleiter stehen in einer Hülle, die im Raster meist unsichtbar bleibt. */
+.lead {
+  display: contents;
+}
+
 .icon {
   flex: none;
   width: 16px;
@@ -703,24 +708,38 @@ select.button {
   margin-top: 0;
 }
 
-/* ── Ergebnisansichten ─────────────────────────────────────────────────── */
+/* ── Fenster für kurze Abläufe ─────────────────────────────────────────── */
 .dialog {
   position: fixed;
   inset: 0;
   z-index: 20;
-  overflow-y: auto;
-  background: var(--bg);
-  padding-block: calc(env(safe-area-inset-top, 0px) + 20px) calc(env(safe-area-inset-bottom, 0px) + 32px);
+  display: grid;
+  place-items: center;
+  padding-block: calc(env(safe-area-inset-top, 0px) + 16px) calc(env(safe-area-inset-bottom, 0px) + 16px);
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
+  background: rgba(0, 0, 0, 0.32);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
 }
 
 .dialog-inner {
-  max-width: 1200px;
-  margin: 0 auto;
+  width: min(760px, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 26px 28px 28px;
+  border-radius: 24px;
+  background: var(--bg);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.28);
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.dialog-head h1 {
+  margin-top: 0;
+  font-size: 26px;
 }
 
 .dialog-head {
@@ -937,8 +956,10 @@ select.button {
   }
 
   .top,
-  .work,
   .bar,
+  .lead,
+  .panel,
+  .tabs,
   .popover-panel,
   .no-print,
   .dialog-head {
@@ -954,10 +975,21 @@ select.button {
     height: auto;
   }
 
-  .dialog {
-    position: static;
+  .work,
+  .work.result {
+    display: block;
+    padding: 0;
+  }
+
+  .result-doc,
+  .result-content {
+    display: block;
     overflow: visible;
     padding: 0;
+  }
+
+  .dialog {
+    display: none;
   }
 
   .quote {
@@ -1193,6 +1225,215 @@ select.button {
 .row-text small {
   color: var(--fg-muted);
   font-size: 12.5px;
+}
+
+/* ── Ergebnisseite ─────────────────────────────────────────────────────── */
+.work.result {
+  grid-template-columns: 360px minmax(0, 1fr) 288px;
+  grid-template-rows: 220px minmax(0, 1fr);
+  grid-template-areas:
+    'hero doc out'
+    'over doc out';
+  column-gap: 32px;
+  padding: 24px var(--gutter-right) 0 max(30px, var(--gutter-left));
+}
+
+.work.result .stage {
+  grid-area: hero;
+  margin: 0;
+  border-radius: 24px;
+}
+
+.result-overview {
+  grid-area: over;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 20px 0 24px;
+}
+
+.result-overview h1 {
+  margin: 0;
+  font-size: 26px;
+}
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.tiles > div {
+  padding: 12px 15px;
+  border-radius: 16px;
+  background: var(--control);
+}
+
+.tiles dt {
+  color: var(--fg-muted);
+  font-size: 12.5px;
+}
+
+.tiles dd {
+  margin-top: 2px;
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.tiles dd small {
+  color: var(--fg-muted);
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.text-link {
+  appearance: none;
+  margin-top: 16px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.result-doc {
+  grid-area: doc;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 18px;
+}
+
+.tabs {
+  flex: none;
+  display: flex;
+  max-width: 100%;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 11px;
+  background: var(--control);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tabs button {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 16px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--fg-muted);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.tabs button[aria-selected='true'] {
+  background: var(--control-active);
+  color: var(--fg);
+  box-shadow: var(--shadow);
+}
+
+.tabs i {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--note);
+  color: var(--bg);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 600;
+}
+
+.result-content {
+  flex: 1;
+  align-self: stretch;
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+/* Der Inhalt behält seine Höhe; gerollt wird die Spalte als Ganzes. */
+.result-content > * {
+  flex: none;
+}
+
+.result-content h3 {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+/* In der Spalte dürfen Texte umbrechen, damit die Tabelle ohne Querrollen passt. */
+.result-content .bom {
+  min-width: 0;
+  font-size: 13.5px;
+}
+
+.result-content .bom th,
+.result-content .bom td {
+  padding-inline: 6px;
+  white-space: normal;
+}
+
+.result-content .bom tbody .num,
+.result-content .bom tfoot .num {
+  white-space: nowrap;
+}
+
+.result-content .bom tbody td:nth-child(5) {
+  min-width: 132px;
+}
+
+/* Lange zusammengesetzte Wörter dürfen in Silben trennen. */
+.result-content .bom thead th,
+.result-content .bom tbody td:nth-child(3) {
+  -webkit-hyphens: auto;
+  hyphens: auto;
+}
+
+.result-content .bom .thumb-cell {
+  width: 62px;
+}
+
+.result-content .thumb {
+  width: 48px;
+  height: 36px;
+}
+
+.result-out {
+  grid-area: out;
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.result-out h2 {
+  color: var(--fg-muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.result-out .rows + h2 {
+  margin-top: 12px;
 }
 
 /* ── Fußleiste ─────────────────────────────────────────────────────────── */
@@ -1778,6 +2019,44 @@ input[type='range']:disabled {
     grid-template-columns: minmax(0, 1fr) 400px;
   }
 
+  /* Ergebnisseite zweispaltig: links Bild, Kennwerte und Ausgaben, rechts die Unterlagen. */
+  .work.result {
+    grid-template-columns: 340px minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    grid-template-areas: none;
+    column-gap: 28px;
+  }
+
+  .work.result .lead {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow-y: auto;
+    padding-bottom: 24px;
+  }
+
+  .work.result .stage {
+    flex: none;
+    height: 200px;
+  }
+
+  .work.result .stage,
+  .result-overview,
+  .result-doc,
+  .result-out {
+    grid-area: auto;
+  }
+
+  .result-overview,
+  .result-out {
+    flex: none;
+    overflow: visible;
+  }
+
+  .result-overview {
+    padding-bottom: 20px;
+  }
+
   .stage-hint {
     display: none;
   }
@@ -1793,6 +2072,41 @@ input[type='range']:disabled {
   .stage {
     margin: 12px var(--gutter-right) 0 var(--gutter-left);
     border-radius: 22px;
+  }
+
+  /* Ergebnisseite als eine durchlaufende Seite. */
+  .work.result {
+    display: block;
+    overflow-y: auto;
+    padding: 12px var(--gutter-right) 24px var(--gutter-left);
+  }
+
+  .work.result .lead {
+    display: block;
+    overflow: visible;
+    padding-bottom: 0;
+  }
+
+  .work.result .stage {
+    height: 210px;
+  }
+
+  .result-out {
+    padding-bottom: 20px;
+  }
+
+  .result-content {
+    overflow: visible;
+    padding-bottom: 0;
+  }
+
+  .result-content .bom {
+    min-width: 600px;
+  }
+
+  .dialog-inner {
+    padding: 20px 18px 22px;
+    border-radius: 20px;
   }
 
   .stage-head,

@@ -8,7 +8,7 @@ interface Props {
   children: ReactNode;
 }
 
-/** Bildschirmfüllende Ansicht über dem Konfigurator, schließt mit Escape. */
+/** Fenster über dem Konfigurator für kurze Abläufe; schließt mit Escape oder einem Klick daneben. */
 export function Dialog({ title, subtitle, onClose, children }: Props) {
   const { t } = useLocale();
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -23,15 +23,15 @@ export function Dialog({ title, subtitle, onClose, children }: Props) {
   }, [onClose]);
 
   return (
-    <div className="dialog" role="dialog" aria-modal="true" aria-label={title}>
-      <div className="dialog-inner">
+    <div className="dialog" onPointerDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="dialog-inner" role="dialog" aria-modal="true" aria-label={title}>
         <header className="dialog-head">
           <div>
             <h1>{title}</h1>
             {subtitle && <p className="lede">{subtitle}</p>}
           </div>
           <button ref={closeRef} type="button" className="button" onClick={onClose}>
-            {t('Zurück zur Konfiguration')}
+            {t('Schließen')}
           </button>
         </header>
         {children}

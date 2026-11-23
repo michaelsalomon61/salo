@@ -39,6 +39,8 @@ export class TrailerScene {
   private sizeKey = '';
   private radius = 4;
   private fitDistance = 12;
+  /** Wie weit das Modell den Ausschnitt füllt; größer als 1 rückt die Kamera näher. */
+  private fill = 1;
   /** Momentane Gelenkwinkel, damit Bewegungen über einen Neuaufbau hinweg weiterlaufen. */
   private angles: Record<string, number> = {};
   private frame = 0;
@@ -165,6 +167,14 @@ export class TrailerScene {
     return canvas.toDataURL('image/png');
   }
 
+  /** Für kleine Ausschnitte: das Modell größer zeigen und die Ansicht neu ausrichten. */
+  setFill(fill: number) {
+    if (fill === this.fill) return;
+    this.fill = fill;
+    this.updateFitDistance();
+    this.resetView();
+  }
+
   setDimensionsVisible(visible: boolean) {
     this.dims.visible = visible;
   }
@@ -254,7 +264,7 @@ export class TrailerScene {
     const vertical = THREE.MathUtils.degToRad(this.camera.fov) / 2;
     const horizontal = Math.atan(Math.tan(vertical) * this.camera.aspect);
     // Die Hüllkugel ist großzügig; 0,9 füllt den Ausschnitt, ohne anzuschneiden.
-    this.fitDistance = (0.9 * this.radius) / Math.sin(Math.min(vertical, horizontal));
+    this.fitDistance = (0.9 * this.radius) / Math.sin(Math.min(vertical, horizontal)) / this.fill;
     this.controls.minDistance = this.radius * 0.5;
     this.controls.maxDistance = this.fitDistance * 2.5;
   }
