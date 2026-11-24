@@ -27,6 +27,10 @@ npm test
 npm run build && node scripts/check-browser.cjs
 ```
 
+- In Cloud-Sitzungen installiert der Startschritt `.claude/hooks/session-start.sh` die Abhängigkeiten von selbst
+  (eingetragen in `.claude/settings.json`); er läuft nur dort und nur, wenn sich `package.json` oder
+  `package-lock.json` geändert haben. Lokal genügt `npm ci`.
+- Einen Linter gibt es nicht; `npx tsc --noEmit` ist die statische Prüfung.
 - `npm test` dauert rund eine Minute; fast alles davon ist `src/cad/connectivity.test.ts`, das den CAD-Kern lädt.
   Während der Arbeit einzelne Dateien laufen lassen, z. B. `npx vitest run src/trailer src/i18n`.
 - `scripts/check-browser.cjs` prüft die gebaute Seite im Browser (rund 70 Prüfungen, drei Fensterbreiten).

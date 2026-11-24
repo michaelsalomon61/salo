@@ -109,3 +109,5 @@ Das Projekt ist ein Anschauungsmodell. Diese Punkte sollte man kennen, bevor man
 Das Projekt wurde im Dialog mit Claude Code entwickelt; der Verlauf mit beschreibenden Commit-Nachrichten
 erklärt jede Änderung. Wer mit Claude Code weiterarbeitet, findet in der `CLAUDE.md` Befehle, Aufbau, Regeln,
 bewährte Arbeitsweise und bekannte Fallstricke, sodass eine neue Sitzung ohne Vorwissen einsteigen kann.
+In Cloud-Sitzungen von Claude Code (claude.ai/code) installiert ein Startschritt die Abhängigkeiten zu Beginn
+jeder Sitzung von selbst (`.claude/hooks/session-start.sh`); lokal bleibt er ohne Wirkung.
