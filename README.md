@@ -74,6 +74,13 @@ npm run dev
 Übersetzungen und den Zusammenhalt des Modells: Für rund 30 Konfigurationen werden alle Bauteile als Körper
 aufgebaut, und jedes muss über Berührungen am Rahmen hängen (`src/cad/connectivity.test.ts`).
 
+Nach `npm run build` prüft `npm run check:browser` die gebaute Seite im Browser: Schritte, Felder,
+Werkzeugleiste, Speichern, Ergebnisseite, Ausgaben, Sprachen und schmale Fenster. Dafür wird Playwright
+gebraucht, das bewusst keine Abhängigkeit des Projekts ist.
+
+Stand, ungeprüfte Annahmen und offene Punkte stehen in der [UEBERGABE.md](UEBERGABE.md), Arbeitshinweise für
+Claude Code in der [CLAUDE.md](CLAUDE.md).
+
 ## Aufbau
 
 - `src/data/`: Stammdaten als Datendateien. `rules.json` enthält Einstellbereiche und Kennzahlen des
